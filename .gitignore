@@ -16,3 +16,4 @@ contracts/broadcast/
 .DS_Store
 *.pem
 .vercel
+technical-docs/
