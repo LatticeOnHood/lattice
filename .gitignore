@@ -17,3 +17,4 @@ contracts/broadcast/
 *.pem
 .vercel
 technical-docs/
+GIT_WORKFLOW.md

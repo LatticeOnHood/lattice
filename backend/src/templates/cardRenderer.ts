@@ -1,0 +1,105 @@
+import { DexScreenerTokenMetrics } from "../services/dexscreener";
+
+export function formatUsd(num: number): string {
+  if (num >= 1_000_000_000) return `$${(num / 1_000_000_000).toFixed(2)}B`;
+  if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(2)}M`;
+  if (num >= 1_000) return `$${(num / 1_000).toFixed(2)}K`;
+  return `$${num.toFixed(4)}`;
+}
+
+export function formatPrice(num: number): string {
+  if (num < 0.0001) return `$${num.toExponential(4)}`;
+  return `$${num.toFixed(6)}`;
+}
+
+/**
+ * Renders Telegram HTML Audit Card
+ */
+export function renderTelegramAuditCard(metrics: DexScreenerTokenMetrics): string {
+  const priceChangeIcon = metrics.priceChange24h >= 0 ? "📈" : "📉";
+  const priceChangeFormatted = `${priceChangeIcon} ${metrics.priceChange24h >= 0 ? "+" : ""}${metrics.priceChange24h.toFixed(2)}%`;
+
+  return `<b>🔮 Lattice Audit Report — $${metrics.symbol}</b>
+<i>${metrics.name}</i> (Robinhood EVM)
+
+<b>📊 Market Valuation</b>
+• <b>Price:</b> <code>${formatPrice(metrics.priceUsd)}</code> (${metrics.priceNative})
+• <b>Market Cap:</b> <code>${formatUsd(metrics.marketCap)}</code>
+• <b>Liquidity Pool:</b> <code>${formatUsd(metrics.liquidityUsd)}</code>
+
+<b>📈 24h Trading Activity</b>
+• <b>24h Volume:</b> <code>${formatUsd(metrics.volume24h)}</code>
+• <b>24h Change:</b> <code>${priceChangeFormatted}</code>
+• <b>24h Transactions:</b> 🟢 <code>${metrics.buys24h} Buys</code> | 🔴 <code>${metrics.sells24h} Sells</code>
+• <b>DEX Venue:</b> <code>${metrics.dexId.toUpperCase()}</code>
+
+<b>🔗 Quick Links</b>
+• <a href="https://dexscreener.com/${metrics.dexId}/${metrics.pairAddress}">DexScreener Pair</a>
+${metrics.twitter ? `• <a href="${metrics.twitter}">Twitter / X</a>\n` : ""}${metrics.telegram ? `• <a href="${metrics.telegram}">Telegram Community</a>\n` : ""}
+<i>Powered by Lattice Audit Engine</i>`;
+}
+
+/**
+ * Renders X (Twitter) Tweet Reply Card (<280 chars)
+ */
+export function renderTwitterAuditReply(metrics: DexScreenerTokenMetrics): string {
+  const priceChangeIcon = metrics.priceChange24h >= 0 ? "📈" : "📉";
+  const changeStr = `${priceChangeIcon}${metrics.priceChange24h >= 0 ? "+" : ""}${metrics.priceChange24h.toFixed(1)}%`;
+
+  return `🔮 $${metrics.symbol} Token Audit
+Price: ${formatPrice(metrics.priceUsd)}
+MCap: ${formatUsd(metrics.marketCap)} | LP: ${formatUsd(metrics.liquidityUsd)}
+24h Vol: ${formatUsd(metrics.volume24h)} (${changeStr})
+24h Tx: 🟢${metrics.buys24h} / 🔴${metrics.sells24h}
+DEX: ${metrics.dexId.toUpperCase()}
+
+#Lattice #RobinhoodEVM #TokenAudit`;
+}
+
+/**
+ * Response for Unlinked Accounts
+ */
+export function renderUnlinkedAccountNotice(platform: "X" | "TELEGRAM"): string {
+  if (platform === "TELEGRAM") {
+    return `⚠️ <b>Account Not Linked</b>
+
+Your Telegram account is not bound to a verified EVM wallet address.
+Please connect your wallet and link your account at:
+<a href="https://lattice.audit/connect">https://lattice.audit/connect</a> to run token audits.`;
+  }
+
+  return `⚠️ Account Not Linked: Please connect your EVM wallet and link your X account at https://lattice.audit/connect to request token audits. #Lattice`;
+}
+
+/**
+ * Response for Help / Welcome Command
+ */
+export function renderHelpNotice(platform: "X" | "TELEGRAM"): string {
+  if (platform === "TELEGRAM") {
+    return `🔮 <b>Welcome to Lattice Audit Bot</b>
+
+Tag or paste a Robinhood EVM token contract address (0x...) to get an instant token audit report.
+
+<b>Commands:</b>
+• <code>/audit 0x...</code> — Run instant token audit
+• <code>/help</code> — Show this help message
+
+<i>Note: Only verified accounts bound to an EVM wallet can run audits.</i>`;
+  }
+
+  return `🔮 Welcome to Lattice! Mention @LatticeBot with a Robinhood EVM token address (0x...) for instant token audits. Learn more at https://lattice.audit`;
+}
+
+/**
+ * Response for Invalid Chain (Non-EVM Address)
+ */
+export function renderInvalidChainNotice(platform: "X" | "TELEGRAM"): string {
+  if (platform === "TELEGRAM") {
+    return `⚠️ <b>Unsupported Blockchain</b>
+
+Lattice currently only supports <b>Robinhood EVM</b> token contract addresses (starting with <code>0x...</code>).
+Solana and non-EVM addresses are ignored.`;
+  }
+
+  return `⚠️ Lattice currently only supports Robinhood EVM token contract addresses (0x...). Solana & non-EVM addresses are ignored.`;
+}
