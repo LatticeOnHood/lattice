@@ -51,7 +51,6 @@ export async function parseIntentWithGroq(userMessage: string): Promise<ParsedIn
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
         Authorization: `Bearer ${GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
