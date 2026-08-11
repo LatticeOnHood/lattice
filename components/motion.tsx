@@ -3,6 +3,7 @@
 import React from "react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { ACCENT, EASE } from "@/lib/brand";
+import { cn } from "@/lib/utils";
 
 export const fadeDown: Variants = {
   hidden: { opacity: 0, y: -20 },
@@ -56,6 +57,8 @@ export function Reveal({
  * The hero's clip reveal: each line slides up from behind an overflow-hidden
  * edge. Reused for every section heading.
  */
+const clipContainer: Variants = { hidden: {}, visible: {} };
+
 export function ClipLines({
   lines,
   className,
@@ -69,29 +72,40 @@ export function ClipLines({
   baseDelay?: number;
   inView?: boolean;
 }) {
-  const animation = inView
-    ? { whileInView: { y: 0 }, viewport: { once: true, amount: 0.4 } }
-    : { animate: { y: 0 } };
+  const line: Variants = {
+    hidden: { y: "110%" },
+    visible: (i: number = 0) => ({
+      y: 0,
+      transition: { delay: baseDelay + i * 0.14, duration: 0.7, ease: EASE },
+    }),
+  };
+
+  /**
+   * The trigger lives on the unclipped container, never on the translated
+   * line itself: a line sitting 110% outside its overflow-hidden window has
+   * zero intersection area, so observing it directly would deadlock — it can
+   * never become "in view", so it would never animate into view.
+   */
+  const trigger = inView
+    ? { whileInView: "visible", viewport: { once: true, amount: 0.3 } }
+    : { animate: "visible" };
 
   return (
-    <span className={className} style={style}>
-      {lines.map((line, i) => (
-        <span key={line} className="block overflow-hidden">
-          <motion.span
-            className="block"
-            initial={{ y: "110%" }}
-            {...animation}
-            transition={{
-              delay: baseDelay + i * 0.14,
-              duration: 0.7,
-              ease: EASE,
-            }}
-          >
-            {line}
+    <motion.span
+      className={cn("block", className)}
+      style={style}
+      variants={clipContainer}
+      initial="hidden"
+      {...trigger}
+    >
+      {lines.map((text, i) => (
+        <span key={text} className="block overflow-hidden">
+          <motion.span className="block" variants={line} custom={i}>
+            {text}
           </motion.span>
         </span>
       ))}
-    </span>
+    </motion.span>
   );
 }
 
@@ -153,9 +167,11 @@ export function SpinningRings({
   const reduceMotion = useReducedMotion();
 
   return (
+    // `relative` is a class, not an inline style, so a caller passing
+    // `absolute` can override it instead of being forced into normal flow.
     <div
-      className={className}
-      style={{ width: size, height: size, position: "relative" }}
+      className={cn("relative", className)}
+      style={{ width: size, height: size }}
       aria-hidden="true"
     >
       <motion.div
