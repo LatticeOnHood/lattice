@@ -47,7 +47,7 @@ describe("1:1 Account Binding Bot Guard Authorization", () => {
     });
 
     expect(response).toContain("Account Not Linked");
-    expect(response).toContain("https://lattice.audit/connect");
+    expect(response).toContain("https://latticehood.app/connect");
   });
 
   it("processTwitterMention should return unlinked account notice for unlinked X user", async () => {
@@ -58,6 +58,6 @@ describe("1:1 Account Binding Bot Guard Authorization", () => {
     });
 
     expect(response).toContain("Account Not Linked");
-    expect(response).toContain("https://lattice.audit/connect");
+    expect(response).toContain("https://latticehood.app/connect");
   });
 });

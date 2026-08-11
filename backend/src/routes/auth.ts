@@ -25,7 +25,7 @@ const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "lattice_jwt_secret_key_2026";
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://latticehood.app";
 const X_CLIENT_ID = process.env.X_CLIENT_ID || "";
 const X_CLIENT_SECRET = process.env.X_CLIENT_SECRET || "";
 const X_OAUTH_REDIRECT_URI =

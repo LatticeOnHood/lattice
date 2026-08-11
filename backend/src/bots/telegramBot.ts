@@ -17,7 +17,7 @@ export interface TelegramIncomingMessage {
   text: string;
 }
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "https://lattice.audit";
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://latticehood.app";
 
 /**
  * Handles an incoming Telegram message with 1:1 wallet binding verification

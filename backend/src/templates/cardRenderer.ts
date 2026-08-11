@@ -65,10 +65,10 @@ export function renderUnlinkedAccountNotice(platform: "X" | "TELEGRAM"): string 
 
 Your Telegram account is not bound to a verified EVM wallet address.
 Please connect your wallet and link your account at:
-<a href="https://lattice.audit/connect">https://lattice.audit/connect</a> to run token audits.`;
+<a href="https://latticehood.app/connect">https://latticehood.app/connect</a> to run token audits.`;
   }
 
-  return `⚠️ Account Not Linked: Please connect your EVM wallet and link your X account at https://lattice.audit/connect to request token audits. #Lattice`;
+  return `⚠️ Account Not Linked: Please connect your EVM wallet and link your X account at https://latticehood.app/connect to request token audits. #Lattice`;
 }
 
 /**
@@ -87,7 +87,7 @@ Tag or paste a Robinhood EVM token contract address (0x...) to get an instant to
 <i>Note: Only verified accounts bound to an EVM wallet can run audits.</i>`;
   }
 
-  return `🔮 Welcome to Lattice! Mention @LatticeBot with a Robinhood EVM token address (0x...) for instant token audits. Learn more at https://lattice.audit`;
+  return `🔮 Welcome to Lattice! Mention @LatticeBot with a Robinhood EVM token address (0x...) for instant token audits. Learn more at https://latticehood.app`;
 }
 
 /**
