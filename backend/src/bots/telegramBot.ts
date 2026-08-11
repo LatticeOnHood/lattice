@@ -18,6 +18,57 @@ export interface TelegramIncomingMessage {
 }
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://latticehood.app";
+const BACKEND_URL = process.env.BACKEND_URL || "https://api.latticehood.app";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+
+/**
+ * Registers Telegram Bot Webhook with Telegram servers
+ */
+export async function registerTelegramWebhook(targetWebhookUrl?: string): Promise<{ success: boolean; description: string }> {
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.log("[telegram-bot] TELEGRAM_BOT_TOKEN not set, skipping webhook registration.");
+    return { success: false, description: "TELEGRAM_BOT_TOKEN not configured" };
+  }
+
+  const webhookUrl = targetWebhookUrl || `${BACKEND_URL}/api/webhook/telegram`;
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: webhookUrl,
+        allowed_updates: ["message", "edited_message"],
+      }),
+    });
+
+    const json = await response.json();
+    if (json.ok) {
+      console.log(`[telegram-bot] Webhook set successfully to ${webhookUrl}`);
+    } else {
+      console.warn(`[telegram-bot] Failed to set webhook: ${json.description}`);
+    }
+
+    return { success: json.ok, description: json.description || "OK" };
+  } catch (err: any) {
+    console.error("[telegram-bot] Webhook registration error:", err);
+    return { success: false, description: err.message || "Failed to register webhook" };
+  }
+}
+
+/**
+ * Retrieves current Telegram Webhook Info from Telegram API
+ */
+export async function getTelegramWebhookInfo(): Promise<any> {
+  if (!TELEGRAM_BOT_TOKEN) return { ok: false, error: "TELEGRAM_BOT_TOKEN not set" };
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo`);
+    return response.json();
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
 
 /**
  * Handles an incoming Telegram message with 1:1 wallet binding verification

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { processTelegramMessage } from "../bots/telegramBot";
+import { processTelegramMessage, registerTelegramWebhook, getTelegramWebhookInfo } from "../bots/telegramBot";
 
 const router = Router();
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
@@ -50,6 +50,25 @@ router.post("/", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("[telegram-webhook] Error processing update:", err);
   }
+});
+
+/**
+ * POST /api/webhook/telegram/setup
+ * Triggers automatic Telegram webhook registration with Telegram Bot API
+ */
+router.post("/setup", async (req: Request, res: Response) => {
+  const { url } = req.body || {};
+  const result = await registerTelegramWebhook(url);
+  res.json(result);
+});
+
+/**
+ * GET /api/webhook/telegram/info
+ * Retrieves current Telegram Webhook registration status from Telegram API
+ */
+router.get("/info", async (_req: Request, res: Response) => {
+  const info = await getTelegramWebhookInfo();
+  res.json(info);
 });
 
 export default router;
