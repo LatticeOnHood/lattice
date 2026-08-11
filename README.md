@@ -14,8 +14,8 @@
 
 ## Live Deployments
 
-- **Backend API (Render):** `https://lattice-api-q16p.onrender.com`
-- **Health Check:** [`https://lattice-api-q16p.onrender.com/health`](https://lattice-api-q16p.onrender.com/health)
+- **Backend API:** `https://api.latticehood.app`
+- **Health Check:** [`https://api.latticehood.app/health`](https://api.latticehood.app/health)
 
 ---
 

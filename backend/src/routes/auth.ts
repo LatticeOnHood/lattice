@@ -29,7 +29,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "https://latticehood.app";
 const X_CLIENT_ID = process.env.X_CLIENT_ID || "";
 const X_CLIENT_SECRET = process.env.X_CLIENT_SECRET || "";
 const X_OAUTH_REDIRECT_URI =
-  process.env.X_OAUTH_REDIRECT_URI || "http://localhost:3001/health/x/callback";
+  process.env.X_OAUTH_REDIRECT_URI || "https://api.latticehood.app/auth/x/callback";
 
 export function issueJwt(walletAddress: string): string {
   return jwt.sign({ walletAddress: walletAddress.toLowerCase() }, JWT_SECRET, {
