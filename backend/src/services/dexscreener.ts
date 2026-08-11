@@ -20,6 +20,14 @@ export interface DexScreenerTokenMetrics {
 }
 
 const EVM_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+const CACHE_TTL_MS = 15000; // 15 seconds cache
+
+interface CacheEntry {
+  timestamp: number;
+  data: DexScreenerTokenMetrics | null;
+}
+
+const tokenCache = new Map<string, CacheEntry>();
 
 export function isValidEvmAddress(address: string): boolean {
   return EVM_ADDRESS_REGEX.test(address.trim());
@@ -32,13 +40,31 @@ export async function fetchDexScreenerTokenData(address: string): Promise<DexScr
     throw new Error("Invalid EVM contract address. Lattice only supports Robinhood EVM tokens.");
   }
 
-  const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${cleanAddress}`);
+  // 1. Check in-memory cache
+  const cached = tokenCache.get(cleanAddress.toLowerCase());
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  // 2. Fetch from DexScreener API with Browser User-Agent header
+  const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${cleanAddress}`, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "application/json",
+    },
+  });
+
+  if (response.status === 429) {
+    throw new Error("DexScreener rate limit reached. Please wait a few seconds before trying again.");
+  }
+
   if (!response.ok) {
     throw new Error(`DexScreener API error (${response.status}): Unable to fetch token data.`);
   }
 
   const data = await response.json();
   if (!data || !data.pairs || data.pairs.length === 0) {
+    tokenCache.set(cleanAddress.toLowerCase(), { timestamp: Date.now(), data: null });
     return null;
   }
 
@@ -53,7 +79,7 @@ export async function fetchDexScreenerTokenData(address: string): Promise<DexScr
   const twitterObj = socialLinks.find((s: any) => s.type === "twitter" || s.type === "x");
   const telegramObj = socialLinks.find((s: any) => s.type === "telegram");
 
-  return {
+  const result: DexScreenerTokenMetrics = {
     address: cleanAddress,
     name: bestPair.baseToken?.name || "Unknown Token",
     symbol: bestPair.baseToken?.symbol || "UNKNOWN",
@@ -73,4 +99,8 @@ export async function fetchDexScreenerTokenData(address: string): Promise<DexScr
     twitter: twitterObj?.url,
     telegram: telegramObj?.url,
   };
+
+  // Cache result
+  tokenCache.set(cleanAddress.toLowerCase(), { timestamp: Date.now(), data: result });
+  return result;
 }

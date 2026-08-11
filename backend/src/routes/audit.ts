@@ -67,7 +67,12 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       },
     });
   } catch (err: any) {
-    next(err);
+    const errMsg = err.message || "Failed to process audit request";
+    if (errMsg.includes("rate limit")) {
+      res.status(429).json({ error: errMsg });
+      return;
+    }
+    res.status(500).json({ error: errMsg });
   }
 });
 
