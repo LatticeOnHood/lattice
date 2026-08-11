@@ -8,11 +8,21 @@ import { ArrowUpRight, X } from "lucide-react";
 import { ACCENT, EASE, FONT_STACK, NAV_LINKS } from "@/lib/brand";
 import { fadeDown } from "@/components/motion";
 
-export function Logo({ size = 32 }: { size?: number }) {
+export function Logo({
+  size = 44,
+  showName = true,
+}: {
+  size?: number;
+  showName?: boolean;
+}) {
   return (
-    <Link href="/" aria-label="Lattice home" className="shrink-0">
+    <Link
+      href="/"
+      aria-label="Lattice home"
+      className="flex shrink-0 items-center gap-2.5"
+    >
       <Image
-        src="/logo.png"
+        src="/logo-mark.png"
         alt="Lattice"
         width={size}
         height={size}
@@ -20,6 +30,11 @@ export function Logo({ size = 32 }: { size?: number }) {
         className="rounded-full"
         style={{ width: size, height: size }}
       />
+      {showName && (
+        <span className="text-base font-semibold uppercase tracking-widest text-black sm:text-lg">
+          Lattice
+        </span>
+      )}
     </Link>
   );
 }

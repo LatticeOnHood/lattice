@@ -14,6 +14,7 @@ import {
   SpinningRings,
   fadeUp,
 } from "@/components/motion";
+import { ComingSoonBadge, ComingSoonMarquee } from "@/components/coming-soon";
 
 const STATS = [
   { symbol: "/", value: "5", label: "Checks Per\nReport" },
@@ -171,19 +172,31 @@ export default function Home() {
                 </p>
               </motion.div>
 
-              <h1
-                className="text-right uppercase text-black"
-                style={{
-                  fontSize: "clamp(2rem, 9vw, 9rem)",
-                  lineHeight: 0.88,
-                  fontWeight: 600,
-                }}
-              >
-                <ClipLines
-                  lines={["Verify", "Before", "You Buy"]}
-                  baseDelay={0.4}
-                />
-              </h1>
+              <div className="flex flex-col items-end">
+                <motion.div
+                  variants={fadeUp}
+                  initial="hidden"
+                  animate="visible"
+                  custom={4}
+                  className="mb-3 md:mb-4"
+                >
+                  <ComingSoonBadge />
+                </motion.div>
+
+                <h1
+                  className="text-right uppercase text-black"
+                  style={{
+                    fontSize: "clamp(2rem, 9vw, 9rem)",
+                    lineHeight: 0.88,
+                    fontWeight: 600,
+                  }}
+                >
+                  <ClipLines
+                    lines={["Verify", "Before", "You Buy"]}
+                    baseDelay={0.4}
+                  />
+                </h1>
+              </div>
             </div>
           </div>
         </main>
@@ -400,6 +413,8 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <ComingSoonMarquee />
 
       <SiteFooter />
     </div>

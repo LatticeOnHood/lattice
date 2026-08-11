@@ -7,6 +7,7 @@ import { ACCENT, FONT_STACK } from "@/lib/brand";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { ClipLines, Reveal } from "@/components/motion";
+import { ComingSoonBadge } from "@/components/coming-soon";
 
 /** Shared frame for the Roadmap and Whitepaper sub-pages. */
 export function PageShell({
@@ -26,9 +27,12 @@ export function PageShell({
 
       <header className="px-5 pb-16 pt-16 sm:px-8 md:px-12 md:pb-24 md:pt-24">
         <Reveal>
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
-            {eyebrow}
-          </span>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+              {eyebrow}
+            </span>
+            <ComingSoonBadge size="sm" />
+          </div>
         </Reveal>
 
         <h1

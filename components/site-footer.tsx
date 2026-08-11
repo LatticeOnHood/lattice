@@ -9,11 +9,11 @@ export function SiteFooter() {
     <footer className="border-t border-black/10 bg-white px-5 py-10 sm:px-8 md:px-12">
       <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
         <div className="flex flex-col gap-3">
-          <Logo size={32} />
+          <Logo size={44} />
           <p className="text-[10px] font-semibold uppercase tracking-widest text-black sm:text-xs">
-            Lattice — On-Chain
+            On-Chain Verification
             <br />
-            Verification Protocol
+            Protocol — Coming Soon
           </p>
         </div>
 
