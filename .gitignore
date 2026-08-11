@@ -17,3 +17,8 @@ contracts/broadcast/
 *.pem
 .vercel
 technical-docs/
+
+# Internal docs (not for the open source mirror)
+GIT_WORKFLOW*.md
+AGENTS.md
+Product Requirements Document (PRD).md
