@@ -3,6 +3,7 @@ import cors from "cors";
 import healthRouter from "./routes/health";
 import authRouter from "./routes/auth";
 import auditRouter from "./routes/audit";
+import telegramWebhookRouter from "./routes/telegramWebhook";
 
 export const app = express();
 
@@ -13,3 +14,4 @@ app.use(express.json());
 app.use("/health", healthRouter);
 app.use("/auth", authRouter);
 app.use("/api/audit", auditRouter);
+app.use("/api/webhook/telegram", telegramWebhookRouter);

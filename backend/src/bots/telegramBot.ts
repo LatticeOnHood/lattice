@@ -17,11 +17,24 @@ export interface TelegramIncomingMessage {
   text: string;
 }
 
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://lattice.audit";
+
 /**
  * Handles an incoming Telegram message with 1:1 wallet binding verification
  */
 export async function processTelegramMessage(msg: TelegramIncomingMessage): Promise<string> {
-  const { userId, text } = msg;
+  const { userId, username, text } = msg;
+
+  const trimmedText = text.trim();
+
+  // Check for explicit /link or /start link_ command
+  if (trimmedText.startsWith("/link") || trimmedText.startsWith("/start link_")) {
+    const linkUrl = `${FRONTEND_URL}/connect?platform=telegram&tg_user_id=${encodeURIComponent(userId)}${username ? `&username=${encodeURIComponent(username)}` : ""}`;
+    return `🔗 <b>Lattice Wallet Binding</b>
+
+Click the link below to connect your EVM wallet and bind your Telegram account:
+<a href="${linkUrl}">${linkUrl}</a>`;
+  }
 
   // 1. Enforce 1:1 Wallet Binding authorization check
   const boundWallet = await getWalletByTelegramUserId(userId);

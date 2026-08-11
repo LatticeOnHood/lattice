@@ -19,10 +19,12 @@ import {
   storePendingAuthState,
   consumePendingAuthState,
 } from "../services/auth/pendingAuthState";
+import { verifyTelegramWidgetAuth } from "../services/auth/telegramAuth";
 
 const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "lattice_jwt_secret_key_2026";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 const X_CLIENT_ID = process.env.X_CLIENT_ID || "";
 const X_CLIENT_SECRET = process.env.X_CLIENT_SECRET || "";
@@ -206,6 +208,72 @@ router.post("/telegram/bind", async (req: Request, res: Response, next: NextFunc
     );
 
     // Link Telegram account
+    await linkTelegramAccount(normalizedWallet, telegramUserId, telegramUsername);
+
+    const token = issueJwt(normalizedWallet);
+    res.json({
+      success: true,
+      token,
+      walletAddress: normalizedWallet,
+      telegramUserId,
+      telegramUsername,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /auth/telegram/widget
+ * Verifies Telegram Login Widget HMAC-SHA256 signature and binds Telegram ID to verified EVM wallet
+ */
+router.post("/telegram/widget", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { walletAddress, signature, message, telegramData } = req.body as {
+      walletAddress?: `0x${string}`;
+      signature?: `0x${string}`;
+      message?: string;
+      telegramData?: Record<string, any>;
+    };
+
+    if (!walletAddress || !signature || !message || !telegramData || !telegramData.id) {
+      res.status(400).json({
+        error: "walletAddress, signature, message, and telegramData with id are required",
+      });
+      return;
+    }
+
+    // 1. Verify EVM Wallet Signature
+    const isValidWallet = await verifyMessage({
+      address: walletAddress,
+      message,
+      signature,
+    }).catch(() => false);
+
+    if (!isValidWallet) {
+      res.status(401).json({ error: "Wallet signature verification failed" });
+      return;
+    }
+
+    // 2. Verify Telegram Widget HMAC Signature if bot token set
+    if (TELEGRAM_BOT_TOKEN) {
+      const isValidTg = verifyTelegramWidgetAuth(telegramData, TELEGRAM_BOT_TOKEN);
+      if (!isValidTg) {
+        res.status(401).json({ error: "Telegram widget signature verification failed" });
+        return;
+      }
+    }
+
+    const normalizedWallet = walletAddress.toLowerCase();
+    const telegramUserId = String(telegramData.id);
+    const telegramUsername = telegramData.username || "";
+
+    await pool.query(
+      `INSERT INTO users (wallet_address) VALUES ($1)
+       ON CONFLICT (wallet_address) DO NOTHING`,
+      [normalizedWallet]
+    );
+
     await linkTelegramAccount(normalizedWallet, telegramUserId, telegramUsername);
 
     const token = issueJwt(normalizedWallet);
