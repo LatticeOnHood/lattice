@@ -44,7 +44,7 @@ function StepFrame({
  * JWT is held.
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const { status, address, signIn, linkTelegram, pending } = useSession();
+  const { status, signIn, linkTelegram, pending } = useSession();
   const { chain } = useAccount();
 
   if (status === "loading") {
@@ -83,12 +83,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     <StepFrame
       step="02"
       title="Verify Wallet Ownership"
-      body="Sign a plain-text message to prove you control this address. Free, off-chain, no transaction and no token approval."
+      body="Sign a plain-text message to prove you control this wallet. Free, off-chain, no transaction and no token approval."
     >
-      <p className="break-all font-mono text-xs text-black/70">{address}</p>
-
       {wrongNetwork && (
-        <p className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-black/40">
+        <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-black/40">
           Connected to {chain?.name}. Signing works on any network, but audits
           target {robinhoodChain.name}.
         </p>
@@ -99,7 +97,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         onClick={signIn}
         disabled={pending === "signin"}
         className={cn(
-          "mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-widest text-white transition-opacity hover:opacity-80 disabled:opacity-50 sm:text-xs"
+          "inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[11px] font-semibold uppercase tracking-widest text-white transition-opacity hover:opacity-80 disabled:opacity-50 sm:text-xs"
         )}
         style={{ backgroundColor: ACCENT }}
       >
