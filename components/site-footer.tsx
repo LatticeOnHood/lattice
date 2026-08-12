@@ -13,7 +13,7 @@ export function SiteFooter() {
           <p className="text-[10px] font-semibold uppercase tracking-widest text-black sm:text-xs">
             On-Chain Verification
             <br />
-            Protocol — Coming Soon
+            Protocol
           </p>
         </div>
 
@@ -50,12 +50,13 @@ export function SiteFooter() {
         <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
           © {new Date().getFullYear()} Lattice
         </span>
-        <span
-          className="text-[10px] font-semibold uppercase tracking-widest"
+        <Link
+          href="/app"
+          className="text-[10px] font-semibold uppercase tracking-widest hover:opacity-60"
           style={{ color: ACCENT }}
         >
-          Coming Soon
-        </span>
+          Launch App
+        </Link>
       </div>
     </footer>
   );

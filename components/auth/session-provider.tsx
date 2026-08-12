@@ -21,6 +21,7 @@ import {
   type TelegramWidgetUser,
   type WalletProof,
 } from "@/lib/api";
+import { useToast } from "@/components/ui/toast";
 
 const STORAGE_KEY = "lattice.session.v1";
 
@@ -40,8 +41,6 @@ interface SessionContextValue {
   address?: `0x${string}`;
   /** Set while a signature prompt or API call is in flight. */
   pending: null | "signin" | "link-x" | "link-telegram";
-  error: string | null;
-  clearError: () => void;
   /** Step 2: sign the verification message; may redirect to X for step 3. */
   signIn: () => Promise<void>;
   /** Cross-link: send the user to X OAuth for an already-verified wallet. */
@@ -82,26 +81,14 @@ function writeStoredSession(session: AuthenticatedSession | null) {
   }
 }
 
-function toMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
-  if (err instanceof Error) {
-    // viem/wagmi surface user rejection with a long multi-line body.
-    if (/user rejected|denied|rejected the request/i.test(err.message)) {
-      return "Signature request rejected.";
-    }
-    return err.message.split("\n")[0];
-  }
-  return "Something went wrong.";
-}
-
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const toast = useToast();
 
   const [session, setSession] = useState<AuthenticatedSession | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [pending, setPending] = useState<SessionContextValue["pending"]>(null);
-  const [error, setError] = useState<string | null>(null);
 
   /**
    * The Telegram and X-cross-link endpoints re-verify wallet ownership on every
@@ -163,39 +150,44 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [address, signMessageAsync]);
 
   const signIn = useCallback(async () => {
-    setError(null);
     setPending("signin");
     try {
       const result = await signInRequest(await getProof());
 
       if (result.kind === "needs-x-link") {
+        toast.info({
+          title: "Redirecting to X",
+          description: "Authorize Lattice to finish linking your wallet.",
+        });
         window.location.href = result.authorizeUrl;
         return;
       }
 
       persist(result.session);
+      toast.success({
+        title: "Wallet verified",
+        description: "Your session is active.",
+      });
     } catch (err) {
-      setError(toMessage(err));
+      toast.fromError(err);
     } finally {
       setPending(null);
     }
-  }, [getProof, persist]);
+  }, [getProof, persist, toast]);
 
   const linkX = useCallback(async () => {
-    setError(null);
     setPending("link-x");
     try {
       const authorizeUrl = await requestXAuthorizeUrl(await getProof());
       window.location.href = authorizeUrl;
     } catch (err) {
-      setError(toMessage(err));
+      toast.fromError(err);
       setPending(null);
     }
-  }, [getProof]);
+  }, [getProof, toast]);
 
   const linkTelegram = useCallback(
     async (data: TelegramWidgetUser) => {
-      setError(null);
       setPending("link-telegram");
       try {
         const proof = await getProof();
@@ -206,13 +198,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           xLinked: session?.xLinked ?? next.xLinked,
           xHandle: session?.xHandle ?? next.xHandle,
         });
+        toast.success({
+          title: "Telegram linked",
+          description: next.telegramUsername
+            ? `@${next.telegramUsername} is now bound to your wallet.`
+            : "Your Telegram account is now bound to your wallet.",
+        });
       } catch (err) {
-        setError(toMessage(err));
+        toast.fromError(err);
       } finally {
         setPending(null);
       }
     },
-    [getProof, persist, session?.xHandle, session?.xLinked]
+    [getProof, persist, session?.xHandle, session?.xLinked, toast]
   );
 
   const adoptToken = useCallback(
@@ -231,14 +229,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       // An expired or revoked JWT should drop the user back to the sign step
       // rather than leaving a dead session in place.
-      if (err instanceof ApiError && err.status === 401) persist(null);
+      if (err instanceof ApiError && err.status === 401) {
+        persist(null);
+        toast.info({
+          title: "Session expired",
+          description: "Sign the verification message again to continue.",
+        });
+      }
+      // Any other failure here is a silent background refresh — the user did
+      // not ask for it, so it must not interrupt them with a toast.
     }
-  }, [persist, session?.token]);
+  }, [persist, session?.token, toast]);
 
   const signOut = useCallback(() => {
     proofRef.current = null;
     persist(null);
-    setError(null);
   }, [persist]);
 
   const status: SessionStatus = !hydrated
@@ -255,8 +260,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       session,
       address,
       pending,
-      error,
-      clearError: () => setError(null),
       signIn,
       linkX,
       linkTelegram,
@@ -264,7 +267,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       signOut,
       refresh,
     }),
-    [status, session, address, pending, error, signIn, linkX, linkTelegram, adoptToken, signOut, refresh]
+    [status, session, address, pending, signIn, linkX, linkTelegram, adoptToken, signOut, refresh]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

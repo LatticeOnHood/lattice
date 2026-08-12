@@ -14,7 +14,6 @@ import {
   SpinningRings,
   fadeUp,
 } from "@/components/motion";
-import { ComingSoonBadge, ComingSoonMarquee } from "@/components/coming-soon";
 
 const STATS = [
   { symbol: "/", value: "5", label: "Checks Per\nReport" },
@@ -173,16 +172,6 @@ export default function Home() {
               </motion.div>
 
               <div className="flex flex-col items-end">
-                <motion.div
-                  variants={fadeUp}
-                  initial="hidden"
-                  animate="visible"
-                  custom={4}
-                  className="mb-3 md:mb-4"
-                >
-                  <ComingSoonBadge />
-                </motion.div>
-
                 <h1
                   className="text-right uppercase text-black"
                   style={{
@@ -413,8 +402,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      <ComingSoonMarquee />
 
       <SiteFooter />
     </div>

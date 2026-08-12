@@ -41,7 +41,7 @@ function Row({
  * cross-recommendation for whichever platform is still unlinked.
  */
 export function LinkedAccountsCard({ className }: { className?: string }) {
-  const { session, linkX, linkTelegram, pending, error } = useSession();
+  const { session, linkX, linkTelegram, pending } = useSession();
 
   if (!session) return null;
 
@@ -79,16 +79,6 @@ export function LinkedAccountsCard({ className }: { className?: string }) {
           linked={telegramLinked}
         />
       </div>
-
-      {error && (
-        <p
-          role="alert"
-          className="border-l-2 pl-3 text-[10px] font-semibold uppercase tracking-widest"
-          style={{ borderColor: ACCENT, color: ACCENT }}
-        >
-          {error}
-        </p>
-      )}
 
       {/* Cross-recommendation: X linked → suggest Telegram next. */}
       {xLinked && !telegramLinked && (

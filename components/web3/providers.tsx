@@ -10,6 +10,8 @@ import { wagmiConfig } from "@/lib/wagmi";
 import { robinhoodChain } from "@/lib/chains";
 import { ACCENT, FONT_STACK } from "@/lib/brand";
 import { SessionProvider } from "@/components/auth/session-provider";
+import { ConnectRedirect } from "@/components/auth/connect-redirect";
+import { ToastProvider } from "@/components/ui/toast";
 
 /** RainbowKit modal restyled to the site's palette and type. */
 const theme = {
@@ -41,7 +43,13 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
           appInfo={{ appName: "Lattice" }}
           modalSize="compact"
         >
-          <SessionProvider>{children}</SessionProvider>
+          {/* Outside SessionProvider: session actions report failures as toasts. */}
+          <ToastProvider>
+            <SessionProvider>
+              <ConnectRedirect />
+              {children}
+            </SessionProvider>
+          </ToastProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

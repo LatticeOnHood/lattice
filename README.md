@@ -57,7 +57,7 @@ lattice/
 ├── app/                  # Next.js 15 App Router (Frontend)
 │   ├── globals.css       # Tailwind CSS & Theme Tokens
 │   ├── layout.tsx        # Root HTML Layout
-│   └── page.tsx          # Minimalist 1-Viewport Coming Soon Landing Page
+│   └── page.tsx          # Marketing Landing Page
 ├── backend/              # Bun + Express Backend Service
 │   ├── src/
 │   │   ├── app.ts        # Express App setup & middleware

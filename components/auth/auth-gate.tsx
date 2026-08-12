@@ -44,7 +44,7 @@ function StepFrame({
  * JWT is held.
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const { status, address, signIn, linkTelegram, pending, error } = useSession();
+  const { status, address, signIn, linkTelegram, pending } = useSession();
   const { chain } = useAccount();
 
   if (status === "loading") {
@@ -106,16 +106,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         {pending === "signin" && <Loader2 className="h-4 w-4 animate-spin" />}
         {pending === "signin" ? "Check Your Wallet" : "Sign Verification Message"}
       </button>
-
-      {error && (
-        <p
-          role="alert"
-          className="mt-4 border-l-2 pl-3 text-[10px] font-semibold uppercase tracking-widest"
-          style={{ borderColor: ACCENT, color: ACCENT }}
-        >
-          {error}
-        </p>
-      )}
 
       <div className="mt-8 border-t border-black/10 pt-6">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">

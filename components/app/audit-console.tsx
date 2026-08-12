@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import { ArrowUpRight, Loader2, Search } from "lucide-react";
 import { ACCENT } from "@/lib/brand";
-import { ApiError, runAudit, type TokenMetrics } from "@/lib/api";
+import { runAudit, type TokenMetrics } from "@/lib/api";
 import { explorerTokenUrl } from "@/lib/chains";
 import { useSession } from "@/components/auth/session-provider";
+import { useToast } from "@/components/ui/toast";
 
 const EVM_ADDRESS = /^0x[a-fA-F0-9]{40}$/;
 
@@ -43,9 +44,9 @@ function Metric({ label, value, accent }: { label: string; value: string; accent
 /** The gated product surface: a token contract in, a structured report out. */
 export function AuditConsole() {
   const { session } = useSession();
+  const toast = useToast();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TokenMetrics | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
@@ -54,7 +55,6 @@ export function AuditConsole() {
     if (!trimmed || loading) return;
 
     setLoading(true);
-    setError(null);
 
     try {
       // A bare contract address skips the Groq intent parse on the backend.
@@ -62,10 +62,9 @@ export function AuditConsole() {
       const audit = await runAudit(input, session?.token);
       setResult(audit.metrics);
     } catch (err) {
-      setResult(null);
-      setError(
-        err instanceof ApiError ? err.message : "Audit failed. Try again in a moment."
-      );
+      // Keep the previous report on screen — replacing a good result with an
+      // empty panel loses information the user may still be reading.
+      toast.fromError(err);
     } finally {
       setLoading(false);
     }
@@ -97,16 +96,6 @@ export function AuditConsole() {
           {loading ? "Reading Chain" : "Run Audit"}
         </button>
       </form>
-
-      {error && (
-        <p
-          role="alert"
-          className="border-l-2 pl-4 text-[11px] font-semibold uppercase leading-relaxed tracking-widest"
-          style={{ borderColor: ACCENT, color: ACCENT }}
-        >
-          {error}
-        </p>
-      )}
 
       {result && (
         <div className="space-y-px">

@@ -40,6 +40,17 @@
   }
 }
 
+/* Countdown bar on auto-dismissing toasts. Driven by CSS rather than JS so
+   pausing on hover is a single `animation-play-state` toggle. */
+@keyframes toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
