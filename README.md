@@ -14,8 +14,8 @@
 
 ## Live Deployments
 
-- **Backend API (Render):** `https://lattice-api-q16p.onrender.com`
-- **Health Check:** [`https://lattice-api-q16p.onrender.com/health`](https://lattice-api-q16p.onrender.com/health)
+- **Backend API:** `https://api.latticehood.app`
+- **Health Check:** [`https://api.latticehood.app/health`](https://api.latticehood.app/health)
 
 ---
 
@@ -69,7 +69,6 @@ lattice/
 ├── public/               # Static media & branding assets (logo, banners)
 ├── lib/                  # Shared UI utilities (`cn`)
 ├── .github/workflows/    # CI/CD pipeline (`backend.yml`)
-├── AGENTS.md             # AI Agent workflow guidelines
 ├── README.md             # Project documentation
 ├── SECURITY.md           # Security reporting policy
 ├── CONTRIBUTING.md       # Development contribution guidelines
