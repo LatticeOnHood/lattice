@@ -16,6 +16,7 @@ export const NAV_LINKS = [
   { label: "Checks", href: "/#checks" },
   { label: "Roadmap", href: "/roadmap" },
   { label: "Whitepaper", href: "/whitepaper" },
+  { label: "App", href: "/app" },
 ];
 
 export const FONT_STACK = "var(--font-inter), 'Inter', sans-serif";

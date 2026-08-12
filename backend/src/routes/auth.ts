@@ -20,6 +20,7 @@ import {
   consumePendingAuthState,
 } from "../services/auth/pendingAuthState";
 import { verifyTelegramWidgetAuth } from "../services/auth/telegramAuth";
+import { requireAuth, AuthenticatedRequest } from "../middleware/authMiddleware";
 
 const router = Router();
 
@@ -34,6 +35,28 @@ const X_OAUTH_REDIRECT_URI =
 export function issueJwt(walletAddress: string): string {
   return jwt.sign({ walletAddress: walletAddress.toLowerCase() }, JWT_SECRET, {
     expiresIn: "7d",
+  });
+}
+
+/**
+ * Mints a fresh PKCE pair + state for `walletAddress` and returns the X
+ * authorize URL the frontend should redirect to.
+ */
+async function createXAuthorizeUrl(normalizedWallet: string): Promise<string> {
+  const state = randomBytes(16).toString("hex");
+  const { codeVerifier, codeChallenge } = generatePkcePair();
+
+  await storePendingAuthState(state, {
+    walletAddress: normalizedWallet,
+    platform: "X",
+    codeVerifier,
+  });
+
+  return buildXAuthorizeUrl({
+    state,
+    codeChallenge,
+    clientId: X_CLIENT_ID,
+    redirectUri: X_OAUTH_REDIRECT_URI,
   });
 }
 
@@ -93,26 +116,86 @@ router.post("/signin", async (req: Request, res: Response, next: NextFunction) =
     }
 
     // Require X account linking: Generate state & PKCE pair
-    const state = randomBytes(16).toString("hex");
-    const { codeVerifier, codeChallenge } = generatePkcePair();
-
-    await storePendingAuthState(state, {
-      walletAddress: normalizedWallet,
-      platform: "X",
-      codeVerifier,
-    });
-
-    const authorizeUrl = buildXAuthorizeUrl({
-      state,
-      codeChallenge,
-      clientId: X_CLIENT_ID,
-      redirectUri: X_OAUTH_REDIRECT_URI,
-    });
+    const authorizeUrl = await createXAuthorizeUrl(normalizedWallet);
 
     res.json({
       needsXLink: true,
       authorizeUrl,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /auth/me
+ * Rehydrates a stored JWT into the current binding state, so the frontend can
+ * restore a session without asking the user to re-sign.
+ */
+router.get("/me", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const walletAddress = req.user!.walletAddress;
+
+    const linkedX = await getLinkedXAccountByWallet(walletAddress);
+    const linkedTelegram = await getLinkedTelegramAccountByWallet(walletAddress);
+
+    res.json({
+      walletAddress,
+      xLinked: !!linkedX,
+      xHandle: linkedX?.xHandle,
+      telegramLinked: !!linkedTelegram,
+      telegramUsername: linkedTelegram?.telegramUsername,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /auth/x/authorize
+ * Issues an X OAuth 2.0 PKCE authorize URL for an already-verified wallet.
+ *
+ * /auth/signin only returns an authorize URL when the wallet has nothing
+ * linked yet; this endpoint covers the cross-link case (Telegram bound first,
+ * X added afterwards to the same wallet).
+ */
+router.post("/x/authorize", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { walletAddress, signature, message } = req.body as {
+      walletAddress?: `0x${string}`;
+      signature?: `0x${string}`;
+      message?: string;
+    };
+
+    if (!walletAddress || !signature || !message) {
+      res.status(400).json({ error: "walletAddress, signature, and message are required" });
+      return;
+    }
+
+    const isValid = await verifyMessage({
+      address: walletAddress,
+      message,
+      signature,
+    }).catch(() => false);
+
+    if (!isValid) {
+      res.status(401).json({ error: "Signature verification failed" });
+      return;
+    }
+
+    const normalizedWallet = walletAddress.toLowerCase();
+
+    const linkedX = await getLinkedXAccountByWallet(normalizedWallet);
+    if (linkedX) {
+      res.status(409).json({
+        error: "This wallet already has an X account linked",
+        xHandle: linkedX.xHandle,
+      });
+      return;
+    }
+
+    const authorizeUrl = await createXAuthorizeUrl(normalizedWallet);
+    res.json({ authorizeUrl });
   } catch (err) {
     next(err);
   }

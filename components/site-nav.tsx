@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, X } from "lucide-react";
 import { ACCENT, EASE, FONT_STACK, NAV_LINKS } from "@/lib/brand";
 import { fadeDown } from "@/components/motion";
+import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 
 export function Logo({
   size = 44,
@@ -77,20 +78,32 @@ export function SiteNav() {
           ))}
         </div>
 
-        <motion.button
-          type="button"
-          variants={fadeDown}
-          initial="hidden"
-          animate="visible"
-          custom={5}
-          onClick={() => setMenuOpen(true)}
-          aria-label="Open menu"
-          className="flex h-9 w-9 shrink-0 flex-col items-center justify-center gap-1 rounded-full bg-black"
-        >
-          <span className="h-0.5 w-4 bg-white" />
-          <span className="h-0.5 w-4 bg-white" />
-          <span className="h-0.5 w-4 bg-white" />
-        </motion.button>
+        <div className="flex items-center gap-3">
+          <motion.div
+            variants={fadeDown}
+            initial="hidden"
+            animate="visible"
+            custom={6}
+            className="hidden sm:block"
+          >
+            <ConnectWalletButton size="sm" />
+          </motion.div>
+
+          <motion.button
+            type="button"
+            variants={fadeDown}
+            initial="hidden"
+            animate="visible"
+            custom={7}
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+            className="flex h-9 w-9 shrink-0 flex-col items-center justify-center gap-1 rounded-full bg-black"
+          >
+            <span className="h-0.5 w-4 bg-white" />
+            <span className="h-0.5 w-4 bg-white" />
+            <span className="h-0.5 w-4 bg-white" />
+          </motion.button>
+        </div>
       </nav>
 
       <AnimatePresence>
@@ -128,15 +141,18 @@ export function SiteNav() {
               ))}
             </div>
 
-            <Link
-              href="/whitepaper"
-              onClick={() => setMenuOpen(false)}
-              className="mt-auto flex items-center gap-1 text-xl uppercase tracking-wide"
-              style={{ color: ACCENT, fontWeight: 600 }}
-            >
-              Read Whitepaper
-              <ArrowUpRight className="h-5 w-5" />
-            </Link>
+            <div className="mt-auto flex flex-col gap-6">
+              <ConnectWalletButton className="w-full sm:hidden" />
+              <Link
+                href="/whitepaper"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-1 text-xl uppercase tracking-wide"
+                style={{ color: ACCENT, fontWeight: 600 }}
+              >
+                Read Whitepaper
+                <ArrowUpRight className="h-5 w-5" />
+              </Link>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

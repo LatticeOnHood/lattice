@@ -28,4 +28,36 @@ describe("Authentication & Account Binding Routes", () => {
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("error");
   });
+
+  it("POST /auth/x/authorize should return 400 if required parameters are missing", async () => {
+    const res = await request(app).post("/auth/x/authorize").send({});
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty("error");
+  });
+
+  it("POST /auth/x/authorize should return 401 for an invalid signature", async () => {
+    const res = await request(app).post("/auth/x/authorize").send({
+      walletAddress: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+      signature: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1b",
+      message: "Welcome to Lattice!",
+    });
+
+    expect(res.status).toBe(401);
+    expect(res.body).toHaveProperty("error");
+  });
+
+  it("GET /auth/me should return 401 without a bearer token", async () => {
+    const res = await request(app).get("/auth/me");
+    expect(res.status).toBe(401);
+    expect(res.body).toHaveProperty("error");
+  });
+
+  it("GET /auth/me should return 401 for a malformed token", async () => {
+    const res = await request(app)
+      .get("/auth/me")
+      .set("Authorization", "Bearer not-a-real-jwt");
+
+    expect(res.status).toBe(401);
+    expect(res.body).toHaveProperty("error");
+  });
 });
