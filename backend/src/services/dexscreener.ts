@@ -55,7 +55,7 @@ export async function fetchDexScreenerTokenData(address: string): Promise<DexScr
   });
 
   if (response.status === 429) {
-    throw new Error("DexScreener rate limit reached. Please wait a few seconds before trying again.");
+    throw new Error("You've been rate limited. Try again in a few moments.");
   }
 
   if (!response.ok) {
