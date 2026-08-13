@@ -4,6 +4,7 @@ import { fetchTokenAuditData } from "../services/codex";
 import { parseIntentWithGroq } from "../services/groq";
 import {
   renderTelegramAuditCard,
+  renderSpecificMetricsCard,
   renderUnlinkedAccountNotice,
   renderHelpNotice,
   renderInvalidChainNotice,
@@ -104,7 +105,7 @@ Click the link below to connect your EVM wallet and bind your Telegram account:
     return renderInvalidChainNotice("TELEGRAM");
   }
 
-  if (intent.action === "AUDIT" && intent.tokenAddress) {
+  if ((intent.action === "AUDIT" || intent.action === "SPECIFIC_METRICS") && intent.tokenAddress) {
     try {
       const metrics = await fetchTokenAuditData(intent.tokenAddress);
       if (!metrics) {
@@ -124,6 +125,10 @@ Click the link below to connect your EVM wallet and bind your Telegram account:
           JSON.stringify(metrics),
         ]
       ).catch((err) => console.warn("[db] Failed to log audit:", err));
+
+      if (intent.action === "SPECIFIC_METRICS" && intent.requestedMetrics && intent.requestedMetrics.length > 0 && !intent.requestedMetrics.includes("FULL_AUDIT")) {
+        return renderSpecificMetricsCard(metrics, intent.requestedMetrics, "TELEGRAM");
+      }
 
       return renderTelegramAuditCard(metrics);
     } catch (err: any) {

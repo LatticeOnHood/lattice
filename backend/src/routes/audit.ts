@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { fetchTokenAuditData } from "../services/codex";
 import { isValidEvmAddress } from "../services/dexscreener";
-import { parseIntentWithGroq } from "../services/groq";
-import { renderTelegramAuditCard, renderTwitterAuditReply } from "../templates/cardRenderer";
+import { parseIntentWithGroq, RequestedMetric } from "../services/groq";
+import { renderTelegramAuditCard, renderTwitterAuditReply, renderSpecificMetricsCard } from "../templates/cardRenderer";
 import { pool } from "../db/index";
 
 const router = Router();
@@ -16,9 +16,11 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
     const { address, message } = req.body as { address?: string; message?: string };
 
     let targetAddress = address;
+    let requestedMetrics: RequestedMetric[] = ["FULL_AUDIT"];
+    let action = "AUDIT";
 
     // If natural language message provided, parse address via Groq AI
-    if (!targetAddress && message) {
+    if (message) {
       const intent = await parseIntentWithGroq(message);
       if (intent.action === "INVALID_CHAIN") {
         res.status(400).json({
@@ -26,7 +28,11 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
         });
         return;
       }
-      targetAddress = intent.tokenAddress || undefined;
+      if (!targetAddress) {
+        targetAddress = intent.tokenAddress || undefined;
+      }
+      requestedMetrics = intent.requestedMetrics || ["FULL_AUDIT"];
+      action = intent.action;
     }
 
     if (!targetAddress || !isValidEvmAddress(targetAddress)) {
@@ -39,7 +45,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
     const metrics = await fetchTokenAuditData(targetAddress);
     if (!metrics) {
       res.status(444).json({
-        error: `No liquidity pool or trading pairs found on DexScreener for address ${targetAddress}`,
+        error: `No liquidity pool or trading pairs found on DexScreener/Codex for address ${targetAddress}`,
       });
       return;
     }
@@ -58,13 +64,19 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       ]
     ).catch((err) => console.warn("[db] Log audit error:", err));
 
+    const isSpecific = action === "SPECIFIC_METRICS" && requestedMetrics.length > 0 && !requestedMetrics.includes("FULL_AUDIT");
+
     res.status(200).json({
       success: true,
       chain: "robinhood",
       metrics,
       renderedCards: {
-        telegramHtml: renderTelegramAuditCard(metrics),
-        twitterText: renderTwitterAuditReply(metrics),
+        telegramHtml: isSpecific
+          ? renderSpecificMetricsCard(metrics, requestedMetrics, "TELEGRAM")
+          : renderTelegramAuditCard(metrics),
+        twitterText: isSpecific
+          ? renderSpecificMetricsCard(metrics, requestedMetrics, "X")
+          : renderTwitterAuditReply(metrics),
       },
     });
   } catch (err: any) {

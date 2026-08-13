@@ -1,4 +1,5 @@
 import { DexScreenerTokenMetrics } from "../services/dexscreener";
+import { RequestedMetric } from "../services/groq";
 
 export function formatUsd(num: number | null | undefined): string {
   const val = Number(num) || 0;
@@ -79,6 +80,126 @@ DEX: ${(metrics.dexId || "uniswap").toUpperCase()}
 }
 
 /**
+ * Renders Targeted Specific Metrics Card for Question Binding (Telegram HTML / X Text)
+ */
+export function renderSpecificMetricsCard(
+  metrics: DexScreenerTokenMetrics,
+  requestedMetrics: RequestedMetric[],
+  platform: "X" | "TELEGRAM"
+): string {
+  const isTelegram = platform === "TELEGRAM";
+  const lines: string[] = [];
+
+  const metricsToRender = requestedMetrics.includes("FULL_AUDIT") || requestedMetrics.length === 0
+    ? ["PRICE", "MARKET_CAP", "LIQUIDITY", "TOP_HOLDERS"] as RequestedMetric[]
+    : requestedMetrics;
+
+  for (const m of metricsToRender) {
+    switch (m) {
+      case "PRICE":
+        lines.push(
+          isTelegram
+            ? `• <b>Price:</b> <code>${formatPrice(metrics.priceUsd)}</code>`
+            : `• Price: ${formatPrice(metrics.priceUsd)}`
+        );
+        break;
+      case "MARKET_CAP":
+        lines.push(
+          isTelegram
+            ? `• <b>Market Cap:</b> <code>${formatUsd(metrics.marketCap)}</code>`
+            : `• MCap: ${formatUsd(metrics.marketCap)}`
+        );
+        break;
+      case "FDV":
+        lines.push(
+          isTelegram
+            ? `• <b>FDV:</b> <code>${formatUsd(metrics.fdv || metrics.marketCap)}</code>`
+            : `• FDV: ${formatUsd(metrics.fdv || metrics.marketCap)}`
+        );
+        break;
+      case "LIQUIDITY":
+        lines.push(
+          isTelegram
+            ? `• <b>Liquidity Pool:</b> <code>${formatUsd(metrics.liquidityUsd)}</code>`
+            : `• LP: ${formatUsd(metrics.liquidityUsd)}`
+        );
+        break;
+      case "VOLUME_24H":
+        lines.push(
+          isTelegram
+            ? `• <b>24h Volume:</b> <code>${formatUsd(metrics.volume24h)}</code>`
+            : `• 24h Vol: ${formatUsd(metrics.volume24h)}`
+        );
+        break;
+      case "PRICE_CHANGE_24H":
+        {
+          const change = Number(metrics.priceChange24h) || 0;
+          const icon = change >= 0 ? "📈" : "📉";
+          lines.push(
+            isTelegram
+              ? `• <b>24h Change:</b> <code>${icon} ${change >= 0 ? "+" : ""}${change.toFixed(2)}%</code>`
+              : `• 24h Change: ${icon}${change >= 0 ? "+" : ""}${change.toFixed(1)}%`
+          );
+        }
+        break;
+      case "TRANSACTIONS_24H":
+        lines.push(
+          isTelegram
+            ? `• <b>24h Txns:</b> 🟢 <code>${metrics.buys24h || 0} Buys</code> | 🔴 <code>${metrics.sells24h || 0} Sells</code>`
+            : `• 24h Tx: 🟢${metrics.buys24h || 0} / 🔴${metrics.sells24h || 0}`
+        );
+        break;
+      case "TOP_HOLDERS":
+        lines.push(
+          isTelegram
+            ? `• <b>Top 10 Holders:</b> <code>${metrics.top10HoldersPct ? `${metrics.top10HoldersPct.toFixed(2)}%` : "N/A"}</code>`
+            : `• Top 10 Holders: ${metrics.top10HoldersPct ? `${metrics.top10HoldersPct.toFixed(1)}%` : "N/A"}`
+        );
+        break;
+      case "ATH":
+        lines.push(
+          isTelegram
+            ? `• <b>ATH Price:</b> <code>${formatPrice(metrics.athPrice || metrics.priceUsd)}</code> (${formatUsd(metrics.athFdv || metrics.marketCap)})`
+            : `• ATH: ${formatPrice(metrics.athPrice || metrics.priceUsd)} (${formatUsd(metrics.athFdv || metrics.marketCap)})`
+        );
+        break;
+      case "ATL":
+        lines.push(
+          isTelegram
+            ? `• <b>ATL Price:</b> <code>${formatPrice(metrics.atlPrice)}</code>`
+            : `• ATL: ${formatPrice(metrics.atlPrice)}`
+        );
+        break;
+      case "CREATOR":
+        {
+          const addr = metrics.creatorAddress;
+          const fmt = addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "Unknown";
+          lines.push(
+            isTelegram
+              ? `• <b>Deployer:</b> <code>${fmt}</code>`
+              : `• Dev: ${fmt}`
+          );
+        }
+        break;
+    }
+  }
+
+  if (isTelegram) {
+    return `<b>🔮 Lattice Quick Answer — $${metrics.symbol}</b>
+<i>${metrics.name}</i> (Robinhood EVM)
+
+${lines.join("\n")}
+
+<i>Powered by Lattice Audit Engine</i>`;
+  }
+
+  return `🔮 $${metrics.symbol} Quick Answer
+${lines.join("\n")}
+
+#Lattice #RobinhoodEVM`;
+}
+
+/**
  * Response for Unlinked Accounts
  */
 export function renderUnlinkedAccountNotice(platform: "X" | "TELEGRAM"): string {
@@ -109,7 +230,7 @@ Tag or paste a Robinhood EVM token contract address (0x...) to get an instant to
 <i>Note: Only verified accounts bound to an EVM wallet can run audits.</i>`;
   }
 
-  return `🔮 Welcome to Lattice! Mention @LatticeBot with a Robinhood EVM token address (0x...) for instant token audits. Learn more at https://latticehood.app`;
+  return `🔮 Welcome to Lattice! Mention @latticehoodbot with a Robinhood EVM token address (0x...) for instant token audits. Learn more at https://latticehood.app`;
 }
 
 /**

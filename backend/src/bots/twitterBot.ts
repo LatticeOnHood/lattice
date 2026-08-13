@@ -4,6 +4,7 @@ import { fetchTokenAuditData } from "../services/codex";
 import { parseIntentWithGroq } from "../services/groq";
 import {
   renderTwitterAuditReply,
+  renderSpecificMetricsCard,
   renderUnlinkedAccountNotice,
   renderHelpNotice,
   renderInvalidChainNotice,
@@ -39,7 +40,7 @@ export async function processTwitterMention(mention: TwitterIncomingMention): Pr
     return renderInvalidChainNotice("X");
   }
 
-  if (intent.action === "AUDIT" && intent.tokenAddress) {
+  if ((intent.action === "AUDIT" || intent.action === "SPECIFIC_METRICS") && intent.tokenAddress) {
     try {
       const metrics = await fetchTokenAuditData(intent.tokenAddress);
       if (!metrics) {
@@ -59,6 +60,10 @@ export async function processTwitterMention(mention: TwitterIncomingMention): Pr
           JSON.stringify(metrics),
         ]
       ).catch((err) => console.warn("[db] Failed to log audit:", err));
+
+      if (intent.action === "SPECIFIC_METRICS" && intent.requestedMetrics && intent.requestedMetrics.length > 0 && !intent.requestedMetrics.includes("FULL_AUDIT")) {
+        return renderSpecificMetricsCard(metrics, intent.requestedMetrics, "X");
+      }
 
       return renderTwitterAuditReply(metrics);
     } catch (err: any) {
