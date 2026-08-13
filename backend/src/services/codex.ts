@@ -48,15 +48,18 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
         const websiteList: string[] = [];
         if (website) websiteList.push(website);
 
-        const top10HoldersPct = Number(token.top10HoldersPercent || result.top10HoldersPercent) || undefined;
-        const holdersCount = Number(result.holders) || undefined;
-        const athPrice = Number(token.extrema?.athPrice) || undefined;
-        const athFdv = Number(token.extrema?.athFdv || token.extrema?.athCircMc) || undefined;
-        const atlPrice = Number(token.extrema?.atlPrice) || undefined;
-        const creatorAddress = token.creatorAddress || token.creator?.address || undefined;
-        const devHoldingsPct = Number(token.creatorHoldingsPercent ?? token.creatorHoldingsPct ?? token.creatorBalancePercent ?? 0);
-        const devBuys = Number(token.creatorBuys ?? token.creatorTxns?.buys ?? 0);
-        const devSells = Number(token.creatorSells ?? token.creatorTxns?.sells ?? 0);
+        const rawToken = token as any;
+        const rawResult = result as any;
+
+        const top10HoldersPct = Number(rawToken.top10HoldersPercent || rawResult.top10HoldersPercent) || undefined;
+        const holdersCount = Number(rawResult.holders) || undefined;
+        const athPrice = Number(rawToken.extrema?.athPrice) || undefined;
+        const athFdv = Number(rawToken.extrema?.athFdv || rawToken.extrema?.athCircMc) || undefined;
+        const atlPrice = Number(rawToken.extrema?.atlPrice) || undefined;
+        const creatorAddress = rawToken.creatorAddress || rawToken.creator?.address || undefined;
+        const devHoldingsPct = Number(rawToken.creatorHoldingsPercent ?? rawToken.creatorHoldingsPct ?? rawToken.creatorBalancePercent ?? 0);
+        const devBuys = Number(rawToken.creatorBuys ?? rawToken.creatorTxns?.buys ?? 0);
+        const devSells = Number(rawToken.creatorSells ?? rawToken.creatorTxns?.sells ?? 0);
 
         return {
           address: normalizedAddress,
