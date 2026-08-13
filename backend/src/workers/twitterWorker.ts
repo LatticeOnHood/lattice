@@ -1,5 +1,5 @@
 import { processTwitterMention } from "../bots/twitterBot";
-import { refreshXAccessToken, getAuthenticatedXUser } from "../services/auth/oauth";
+import { refreshXAccessToken, getAuthenticatedXUser, getStoredXBotTokens, saveXBotTokens } from "../services/auth/oauth";
 import { splitTweetContent } from "../templates/cardRenderer";
 
 let currentAccessToken = process.env.X_ACCESS_TOKEN || "";
@@ -12,6 +12,14 @@ export const POLL_INTERVAL_MS = 60000; // 60 seconds (strictly fits Twitter API 
 let lastSeenTweetId: string | null = null;
 let cachedBotUserId: string | null = null;
 let isPolling = false;
+
+async function initTokens() {
+  const stored = await getStoredXBotTokens();
+  if (stored) {
+    currentAccessToken = stored.accessToken;
+    currentRefreshToken = stored.refreshToken;
+  }
+}
 
 async function getBotUserId(): Promise<string | null> {
   if (cachedBotUserId) return cachedBotUserId;
