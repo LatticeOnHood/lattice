@@ -39,17 +39,28 @@ export function parseRequestedMetricsFromText(text: string): RequestedMetric[] {
   const lower = text.toLowerCase();
   const metrics: RequestedMetric[] = [];
 
-  if (lower.includes("price") || lower.includes("cost") || lower.includes("how much")) metrics.push("PRICE");
+  const isDevQuery = lower.includes("dev") || lower.includes("creator") || lower.includes("deployer");
+
+  if (isDevQuery) {
+    metrics.push("CREATOR");
+  }
+
+  if (lower.includes("price") || lower.includes("cost") || (lower.includes("how much") && !isDevQuery)) {
+    metrics.push("PRICE");
+  }
   if (lower.includes("market cap") || lower.includes("mcap") || lower.includes("valuation")) metrics.push("MARKET_CAP");
   if (lower.includes("fdv") || lower.includes("fully diluted")) metrics.push("FDV");
   if (lower.includes("liquidity") || lower.includes("lp") || lower.includes("pool")) metrics.push("LIQUIDITY");
   if (lower.includes("volume") || lower.includes("24h vol")) metrics.push("VOLUME_24H");
   if (lower.includes("change") || lower.includes("trend")) metrics.push("PRICE_CHANGE_24H");
   if (lower.includes("buy") || lower.includes("sell") || lower.includes("tx") || lower.includes("transaction")) metrics.push("TRANSACTIONS_24H");
-  if (lower.includes("holder") || lower.includes("distribution") || lower.includes("top 10")) metrics.push("TOP_HOLDERS");
+  if (lower.includes("holder") || lower.includes("distribution") || lower.includes("top 10")) {
+    if (!isDevQuery || lower.includes("top 10") || lower.includes("total holder") || lower.includes("how many holder")) {
+      metrics.push("TOP_HOLDERS");
+    }
+  }
   if (lower.includes("ath") || lower.includes("all time high") || lower.includes("peak")) metrics.push("ATH");
   if (lower.includes("atl") || lower.includes("all time low") || lower.includes("bottom")) metrics.push("ATL");
-  if (lower.includes("creator") || lower.includes("deployer") || lower.includes("dev")) metrics.push("CREATOR");
 
   return metrics.length > 0 ? metrics : ["FULL_AUDIT"];
 }
@@ -106,8 +117,11 @@ Analyze incoming chat messages from X and Telegram and output JSON strictly conf
   "tokenAddress": "string or null",
   "requestedMetrics": Array<"PRICE" | "MARKET_CAP" | "FDV" | "LIQUIDITY" | "VOLUME_24H" | "PRICE_CHANGE_24H" | "TRANSACTIONS_24H" | "TOP_HOLDERS" | "ATH" | "ATL" | "CREATOR" | "FULL_AUDIT">
 }
-Rules:
-- If the user asks a specific question (e.g., "how many holders does 0xCA have and whats the market cap"), set action to "SPECIFIC_METRICS", extract the 0x address, and list all requested metric keys in requestedMetrics array.
+Rules & Examples:
+- "how much does dev wallet hold" / "dev holdings" / "dev buys and sells" / "deployer holdings" -> set action to "SPECIFIC_METRICS" and requestedMetrics to ["CREATOR"].
+- "how many holders" / "top 10 holders" -> set action to "SPECIFIC_METRICS" and requestedMetrics to ["TOP_HOLDERS"].
+- "what is the price and market cap" -> set action to "SPECIFIC_METRICS" and requestedMetrics to ["PRICE", "MARKET_CAP"].
+- If the user asks a specific question about token metrics, set action to "SPECIFIC_METRICS", extract the 0x address, and list all requested metric keys in requestedMetrics array.
 - If the user just pastes a 0x address or asks for a full audit, set action to "AUDIT" and requestedMetrics to ["FULL_AUDIT"].
 - If the user asks how to use the bot or types /help, set action to "HELP".
 - If the user provides a Solana or non-EVM address, set action to "INVALID_CHAIN".`,
