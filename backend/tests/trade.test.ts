@@ -23,6 +23,12 @@ describe("Buy & Sell Token Trading Engine & Commands", () => {
     expect(res?.toToken).toBe("USDG");
   });
 
+  test("parseTradeCommand should preserve lower-case 0x prefix for token contract addresses", () => {
+    const res = parseTradeCommand("Buy 0.00004 ETH of 0x655C8B48ea31DeeaDDA63998B534c965E6D019cc");
+    expect(res).not.toBeNull();
+    expect(res?.toToken).toBe("0x655c8b48ea31deeadda63998b534c965e6d019cc");
+  });
+
   test("findToken should resolve curated Stock tokens, USDG, and ETH", () => {
     const aapl = findToken("AAPL");
     expect(aapl).toBeDefined();

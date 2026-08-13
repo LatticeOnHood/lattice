@@ -39,8 +39,9 @@ export function parseTradeCommand(text: string): TradeIntentDetails | null {
 
   const keyword = match[1].toUpperCase();
   const amountIn = match[2];
-  const firstToken = match[3].toUpperCase();
-  const secondToken = match[4] ? match[4].toUpperCase() : undefined;
+  const normalizeToken = (t: string) => (t.toLowerCase().startsWith("0x") ? t.toLowerCase() : t.toUpperCase());
+  const firstToken = normalizeToken(match[3]);
+  const secondToken = match[4] ? normalizeToken(match[4]) : undefined;
 
   let side: "BUY" | "SELL" = keyword === "SELL" ? "SELL" : "BUY";
   let fromToken = firstToken;

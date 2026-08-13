@@ -53,7 +53,11 @@ export async function resolveToken(input: string): Promise<TokenInfo | undefined
   const known = findToken(input);
   if (known) return known;
 
-  const trimmed = input.trim();
+  let trimmed = input.trim();
+  if (trimmed.toLowerCase().startsWith("0x")) {
+    trimmed = "0x" + trimmed.slice(2).toLowerCase();
+  }
+
   if (!isAddress(trimmed)) return undefined;
 
   const address = getAddress(trimmed);
