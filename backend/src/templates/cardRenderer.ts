@@ -23,6 +23,22 @@ export function renderTelegramAuditCard(metrics: DexScreenerTokenMetrics): strin
   const priceChangeIcon = priceChange >= 0 ? "📈" : "📉";
   const priceChangeFormatted = `${priceChangeIcon} ${priceChange >= 0 ? "+" : ""}${priceChange.toFixed(2)}%`;
 
+  const top10Section = metrics.top10HoldersPct
+    ? `• <b>Top 10 Holders:</b> <code>${metrics.top10HoldersPct.toFixed(2)}%</code>\n`
+    : "";
+
+  const athSection = metrics.athPrice
+    ? `• <b>ATH Price:</b> <code>${formatPrice(metrics.athPrice)}</code> (${formatUsd(metrics.athFdv)})\n`
+    : "";
+
+  const creatorSection = metrics.creatorAddress
+    ? `• <b>Deployer:</b> <code>${metrics.creatorAddress.slice(0, 6)}...${metrics.creatorAddress.slice(-4)}</code>\n`
+    : "";
+
+  const securityHeader = (top10Section || athSection || creatorSection)
+    ? `\n<b>🛡️ Security & Distribution</b>\n${top10Section}${athSection}${creatorSection}`
+    : "";
+
   return `<b>🔮 Lattice Audit Report — $${metrics.symbol}</b>
 <i>${metrics.name}</i> (Robinhood EVM)
 
@@ -35,7 +51,7 @@ export function renderTelegramAuditCard(metrics: DexScreenerTokenMetrics): strin
 • <b>24h Volume:</b> <code>${formatUsd(metrics.volume24h)}</code>
 • <b>24h Change:</b> <code>${priceChangeFormatted}</code>
 • <b>24h Transactions:</b> 🟢 <code>${metrics.buys24h || 0} Buys</code> | 🔴 <code>${metrics.sells24h || 0} Sells</code>
-• <b>DEX Venue:</b> <code>${(metrics.dexId || "uniswap").toUpperCase()}</code>
+• <b>DEX Venue:</b> <code>${(metrics.dexId || "uniswap").toUpperCase()}</code>${securityHeader}
 
 <b>🔗 Quick Links</b>
 • <a href="https://dexscreener.com/${metrics.dexId || "uniswap"}/${metrics.pairAddress || ""}">DexScreener Pair</a>
@@ -50,12 +66,13 @@ export function renderTwitterAuditReply(metrics: DexScreenerTokenMetrics): strin
   const priceChange = Number(metrics.priceChange24h) || 0;
   const priceChangeIcon = priceChange >= 0 ? "📈" : "📉";
   const changeStr = `${priceChangeIcon}${priceChange >= 0 ? "+" : ""}${priceChange.toFixed(1)}%`;
+  const top10Str = metrics.top10HoldersPct ? ` | Top10: ${metrics.top10HoldersPct.toFixed(1)}%` : "";
 
   return `🔮 $${metrics.symbol} Token Audit
 Price: ${formatPrice(metrics.priceUsd)}
 MCap: ${formatUsd(metrics.marketCap)} | LP: ${formatUsd(metrics.liquidityUsd)}
 24h Vol: ${formatUsd(metrics.volume24h)} (${changeStr})
-24h Tx: 🟢${metrics.buys24h || 0} / 🔴${metrics.sells24h || 0}
+24h Tx: 🟢${metrics.buys24h || 0} / 🔴${metrics.sells24h || 0}${top10Str}
 DEX: ${(metrics.dexId || "uniswap").toUpperCase()}
 
 #Lattice #RobinhoodEVM #TokenAudit`;

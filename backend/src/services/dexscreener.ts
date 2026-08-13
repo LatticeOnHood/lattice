@@ -17,6 +17,11 @@ export interface DexScreenerTokenMetrics {
   websites?: string[];
   twitter?: string;
   telegram?: string;
+  top10HoldersPct?: number;
+  athPrice?: number;
+  athFdv?: number;
+  atlPrice?: number;
+  creatorAddress?: string;
 }
 
 const EVM_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;

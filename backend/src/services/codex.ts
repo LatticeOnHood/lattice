@@ -48,6 +48,12 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
         const websiteList: string[] = [];
         if (website) websiteList.push(website);
 
+        const top10HoldersPct = Number(token.top10HoldersPercent || result.top10HoldersPercent) || undefined;
+        const athPrice = Number(token.extrema?.athPrice) || undefined;
+        const athFdv = Number(token.extrema?.athFdv || token.extrema?.athCircMc) || undefined;
+        const atlPrice = Number(token.extrema?.atlPrice) || undefined;
+        const creatorAddress = token.creatorAddress || token.creator?.address || undefined;
+
         return {
           address: normalizedAddress,
           name: token.name || token.info?.name || "Unknown Token",
@@ -66,6 +72,11 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
           websites: websiteList,
           twitter: twitter || undefined,
           telegram: telegram || undefined,
+          top10HoldersPct,
+          athPrice,
+          athFdv,
+          atlPrice,
+          creatorAddress,
         };
       }
     } catch (err) {
