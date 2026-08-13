@@ -317,7 +317,7 @@ export function renderTradeQuoteCard(
   const side = tradeDetails?.side || (quote.fromToken.symbol === "USDG" || quote.fromToken.symbol === "ETH" ? "BUY" : "SELL");
   const actionText = side === "BUY" ? "Buy Quote" : "Sell Quote";
 
-
+  const executeUrl = `https://latticehood.app/trade?from=${quote.fromToken.address}&to=${quote.toToken.address}&amount=${quote.amountIn}`;
   const dexVer = quote.dexVersion || "V3";
 
   if (platform === "TELEGRAM") {

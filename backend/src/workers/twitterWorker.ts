@@ -1,11 +1,8 @@
 import { processTwitterMention } from "../bots/twitterBot";
-import { refreshXAccessToken, getAuthenticatedXUser, getStoredXBotTokens, saveXBotTokens } from "../services/auth/oauth";
+import { getAuthenticatedXUser } from "../services/auth/oauth";
+import { getValidBotAccessToken } from "../services/auth/xBotTokenManager";
 import { splitTweetContent } from "../templates/cardRenderer";
 
-let currentAccessToken = process.env.X_ACCESS_TOKEN || "";
-let currentRefreshToken = process.env.X_REFRESH_TOKEN || "";
-const X_CLIENT_ID = process.env.X_CLIENT_ID || "";
-const X_CLIENT_SECRET = process.env.X_CLIENT_SECRET || "";
 const X_BOT_ENABLED = process.env.X_BOT_ENABLED === "true";
 export const POLL_INTERVAL_MS = 60000; // 60 seconds (strictly fits Twitter API 15 req / 15 min limit)
 
@@ -13,19 +10,11 @@ let lastSeenTweetId: string | null = null;
 let cachedBotUserId: string | null = null;
 let isPolling = false;
 
-async function initTokens() {
-  const stored = await getStoredXBotTokens();
-  if (stored) {
-    currentAccessToken = stored.accessToken;
-    currentRefreshToken = stored.refreshToken;
-  }
-}
-
 async function getBotUserId(): Promise<string | null> {
   if (cachedBotUserId) return cachedBotUserId;
-  if (!currentAccessToken) return null;
   try {
-    const user = await getAuthenticatedXUser(currentAccessToken);
+    const token = await getValidBotAccessToken();
+    const user = await getAuthenticatedXUser(token);
     cachedBotUserId = user.id;
     console.log(`[twitter-worker] Resolved bot X User ID: ${user.id} (@${user.username})`);
     return cachedBotUserId;
@@ -35,38 +24,14 @@ async function getBotUserId(): Promise<string | null> {
   }
 }
 
-async function tryRefreshToken(): Promise<boolean> {
-  if (!currentRefreshToken || !X_CLIENT_ID || !X_CLIENT_SECRET) {
-    return false;
-  }
-  try {
-    const refreshed = await refreshXAccessToken({
-      refreshToken: currentRefreshToken,
-      clientId: X_CLIENT_ID,
-      clientSecret: X_CLIENT_SECRET,
-    });
-    currentAccessToken = refreshed.access_token;
-    if (refreshed.refresh_token) {
-      currentRefreshToken = refreshed.refresh_token;
-    }
-    // Save updated tokens to PostgreSQL so they survive server restarts
-    await saveXBotTokens(currentAccessToken, currentRefreshToken);
-
-    // Invalidate cached bot user ID so it re-verifies on next call
-    cachedBotUserId = null;
-    console.log("[twitter-worker] Successfully refreshed X OAuth access token and saved to DB.");
-    return true;
-  } catch (err: any) {
-    console.error("[twitter-worker] Failed to refresh X OAuth token:", err.message);
-    return false;
-  }
-}
-
 /**
- * Fetches recent mentions for the bot user from Twitter API v2
+ * Fetches recent mentions for the bot user from Twitter API v2.
+ * Uses getValidBotAccessToken (TagioPay pattern) — proactively refreshes 5 min
+ * before expiry with a shared in-flight mutex to prevent single-use token races.
  */
-async function fetchBotMentions(sinceId?: string, isRetry = false): Promise<any[]> {
-  if (!currentAccessToken) return [];
+async function fetchBotMentions(sinceId?: string): Promise<any[]> {
+  const token = await getValidBotAccessToken();
+  if (!token) return [];
 
   const botUserId = await getBotUserId();
   if (!botUserId) return [];
@@ -81,19 +46,11 @@ async function fetchBotMentions(sinceId?: string, isRetry = false): Promise<any[
   }
 
   const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${currentAccessToken}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!response.ok) {
-    if (response.status === 401 && !isRetry) {
-      console.warn("[twitter-worker] Access token expired (401). Attempting token refresh...");
-      const refreshed = await tryRefreshToken();
-      if (refreshed) {
-        return fetchBotMentions(sinceId, true);
-      }
-    } else if (response.status === 429) {
+    if (response.status === 429) {
       console.warn("[twitter-worker] Rate limited by Twitter API (429). Backing off for this cycle.");
     } else {
       const text = await response.text().catch(() => "");
@@ -121,22 +78,21 @@ async function fetchBotMentions(sinceId?: string, isRetry = false): Promise<any[
 }
 
 /**
- * Posts a reply tweet back to Twitter API v2, returning created tweet ID
+ * Posts a reply tweet back to Twitter API v2, returning created tweet ID.
  */
 async function postReplyTweet(replyText: string, inReplyToTweetId: string): Promise<string | null> {
-  if (!currentAccessToken) return null;
+  const token = await getValidBotAccessToken();
+  if (!token) return null;
 
   const response = await fetch("https://api.twitter.com/2/tweets", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${currentAccessToken}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       text: replyText,
-      reply: {
-        in_reply_to_tweet_id: inReplyToTweetId,
-      },
+      reply: { in_reply_to_tweet_id: inReplyToTweetId },
     }),
   });
 
@@ -148,14 +104,14 @@ async function postReplyTweet(replyText: string, inReplyToTweetId: string): Prom
   const errorText = await response.text().catch(() => "");
   console.warn(`[twitter-worker] Reply tweet returned ${response.status}: ${errorText}`);
 
-  // Fallback: If HTTP 403 (conversation reply restricted by thread author), post as a Quote Tweet!
+  // Fallback: If HTTP 403 (conversation reply restricted by thread author), post as a Quote Tweet
   if (response.status === 403) {
     console.log("[twitter-worker] Attempting quote tweet fallback for restricted conversation...");
     const quoteResponse = await fetch("https://api.twitter.com/2/tweets", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${currentAccessToken}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         text: replyText,
@@ -232,15 +188,16 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
  * Starts continuous background polling worker
  */
 export async function startTwitterWorker() {
-  await initTokens();
-
-  if (!X_BOT_ENABLED || !currentAccessToken) {
-    console.log("[twitter-worker] X Bot Worker disabled or missing X_ACCESS_TOKEN.");
+  if (!X_BOT_ENABLED) {
+    console.log("[twitter-worker] X Bot Worker disabled (X_BOT_ENABLED != true).");
     return;
   }
 
   if (isPolling) return;
   isPolling = true;
+
+  // Eagerly resolve bot user ID on startup
+  await getBotUserId();
 
   console.log(`[twitter-worker] Twitter Mentions Worker started (polling every ${POLL_INTERVAL_MS / 1000}s)...`);
 
