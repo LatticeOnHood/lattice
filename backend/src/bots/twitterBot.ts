@@ -18,18 +18,21 @@ export interface TwitterIncomingMention {
 }
 
 /**
- * Processes an incoming X mention with 1:1 wallet binding verification
+ * Processes an incoming X mention with 1:1 wallet binding verification (TagioPay Architecture)
+ * Senders who aren't a linked Lattice+X user are silently ignored (no reply) to prevent noise,
+ * link spam shadowbans, and X API rate limit budget exhaustion.
  */
-export async function processTwitterMention(mention: TwitterIncomingMention): Promise<string> {
+export async function processTwitterMention(mention: TwitterIncomingMention): Promise<string | null> {
   const { authorXUserId, authorUsername, text } = mention;
 
-  // 1. Enforce 1:1 Wallet Binding authorization check
+  // 1. Enforce 1:1 Wallet Binding authorization check (TagioPay Pattern: Silently ignore unlinked senders)
   let boundWallet = await getWalletByXUserId(authorXUserId);
   if (!boundWallet && authorUsername) {
     boundWallet = await getWalletByXHandle(authorUsername);
   }
   if (!boundWallet) {
-    return renderUnlinkedAccountNotice("X");
+    console.log(`[x-bot] Mentions ignored for unlinked sender (authorId: ${authorXUserId}, username: @${authorUsername || "unknown"})`);
+    return null;
   }
 
   // 2. Parse Intent via Groq AI
@@ -74,5 +77,6 @@ export async function processTwitterMention(mention: TwitterIncomingMention): Pr
     }
   }
 
-  return renderHelpNotice("X");
+  // Unrecognized command / noise — silently ignore
+  return null;
 }

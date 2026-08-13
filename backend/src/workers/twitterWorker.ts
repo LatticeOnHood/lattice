@@ -128,8 +128,10 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
         text,
       });
 
-      await postReplyTweet(replyText, tweetId);
-      processedCount++;
+      if (replyText) {
+        await postReplyTweet(replyText, tweetId);
+        processedCount++;
+      }
     }
 
     return processedCount;
