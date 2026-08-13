@@ -24,8 +24,8 @@ export function buildXAuthorizeUrl(params: {
   redirectUri: string;
   scope?: string;
 }): string {
-  const scope = params.scope || "users.read tweet.read";
-  const url = new URL("https://twitter.com/i/oauth2/authorize");
+  const scope = params.scope || "users.read tweet.read offline.access";
+  const url = new URL("https://x.com/i/oauth2/authorize");
 
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", params.clientId);
