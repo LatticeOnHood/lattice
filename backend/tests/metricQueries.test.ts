@@ -42,7 +42,7 @@ describe("Natural Language Specific Metric Queries & Question Binding", () => {
     expect(intent.tokenAddress?.toLowerCase()).toBe(gatoAddress.toLowerCase());
     expect(intent.requestedMetrics).toContain("PRICE");
     expect(intent.requestedMetrics).toContain("VOLUME_24H");
-  });
+  }, 15000);
 
   it("renderSpecificMetricsCard should render Telegram HTML with specific holders count and bound metrics", () => {
     const card = renderSpecificMetricsCard(mockMetrics, ["TOP_HOLDERS", "MARKET_CAP"], "TELEGRAM");

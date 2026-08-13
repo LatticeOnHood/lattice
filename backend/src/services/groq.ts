@@ -14,11 +14,53 @@ export type RequestedMetric =
   | "CREATOR"
   | "FULL_AUDIT";
 
+export interface TradeIntentDetails {
+  fromToken: string;
+  toToken: string;
+  amountIn: string;
+  side: "BUY" | "SELL";
+}
+
 export interface ParsedIntent {
-  action: "AUDIT" | "SPECIFIC_METRICS" | "HELP" | "INVALID_CHAIN" | "UNKNOWN";
+  action: "AUDIT" | "SPECIFIC_METRICS" | "TRADE" | "HELP" | "INVALID_CHAIN" | "UNKNOWN";
   tokenAddress: string | null;
   requestedMetrics: RequestedMetric[];
+  tradeDetails?: TradeIntentDetails;
   rawQuery?: string;
+}
+
+/**
+ * Parses natural language buy/sell trading commands
+ */
+export function parseTradeCommand(text: string): TradeIntentDetails | null {
+  const lower = text.toLowerCase().trim();
+  const match = lower.match(/(buy|sell|trade|swap)\s+([\d\.]+)\s+([a-zA-Z0-9xX]+)(?:\s+(?:to|for|of|with)\s+([a-zA-Z0-9xX]+))?/i);
+  if (!match) return null;
+
+  const keyword = match[1].toUpperCase();
+  const amountIn = match[2];
+  const firstToken = match[3].toUpperCase();
+  const secondToken = match[4] ? match[4].toUpperCase() : undefined;
+
+  let side: "BUY" | "SELL" = keyword === "SELL" ? "SELL" : "BUY";
+  let fromToken = firstToken;
+  let toToken = secondToken || "USDG";
+
+  if (keyword === "BUY" && secondToken) {
+    fromToken = firstToken;
+    toToken = secondToken;
+  } else if (keyword === "SELL" && secondToken) {
+    fromToken = firstToken;
+    toToken = secondToken;
+    side = "SELL";
+  }
+
+  return {
+    fromToken,
+    toToken,
+    amountIn,
+    side,
+  };
 }
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
@@ -73,6 +115,17 @@ export async function parseIntentWithGroq(userMessage: string): Promise<ParsedIn
 
   if (userMessage.trim().startsWith("/start") || userMessage.trim().startsWith("/help")) {
     return { action: "HELP", tokenAddress: null, requestedMetrics: [], rawQuery: userMessage };
+  }
+
+  const tradeDetails = parseTradeCommand(userMessage);
+  if (tradeDetails) {
+    return {
+      action: "TRADE",
+      tokenAddress: directAddress,
+      requestedMetrics: [],
+      tradeDetails,
+      rawQuery: userMessage,
+    };
   }
 
   // If a Solana Base58 or non-EVM address pattern is detected without 0x

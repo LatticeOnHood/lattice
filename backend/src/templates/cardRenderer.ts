@@ -297,11 +297,44 @@ Tag or paste a Robinhood EVM token contract address (0x...) to get an instant to
  */
 export function renderInvalidChainNotice(platform: "X" | "TELEGRAM"): string {
   if (platform === "TELEGRAM") {
-    return `⚠️ <b>Unsupported Blockchain</b>
+    return `⚠️ <b>Invalid Network / Address</b>
 
-Lattice currently only supports <b>Robinhood EVM</b> token contract addresses (starting with <code>0x...</code>).
-Solana and non-EVM addresses are ignored.`;
+Lattice Audit Engine currently operates on <b>Robinhood EVM Chain</b>.
+Please supply a valid 40-character 0x EVM contract address.`;
   }
 
-  return `⚠️ Lattice currently only supports Robinhood EVM token contract addresses (0x...). Solana & non-EVM addresses are ignored.`;
+  return `⚠️ Invalid Network: Lattice operates on Robinhood EVM Chain. Please provide a valid 0x EVM address. #Lattice`;
+}
+
+/**
+ * Renders Non-Custodial Buy/Sell Trade Quote Card for Telegram HTML and X
+ */
+export function renderTradeQuoteCard(
+  quote: any,
+  platform: "X" | "TELEGRAM",
+  tradeDetails?: any
+): string {
+  const side = tradeDetails?.side || (quote.fromToken.symbol === "USDG" || quote.fromToken.symbol === "ETH" ? "BUY" : "SELL");
+  const actionText = side === "BUY" ? "Buy Quote" : "Sell Quote";
+  const executeUrl = `https://latticehood.app/trade?from=${quote.fromToken.symbol}&to=${quote.toToken.symbol}&amount=${quote.amountIn}`;
+
+  if (platform === "TELEGRAM") {
+    return `⚡ <b>Lattice ${actionText} — $${quote.toToken.symbol}</b>
+
+• <b>Pay:</b> <code>${quote.amountIn} ${quote.fromToken.symbol}</code>
+• <b>Receive (Est.):</b> <code>${quote.amountOut} ${quote.toToken.symbol}</code>
+• <b>Price Impact:</b> <code>~${quote.priceImpactPct}%</code>
+• <b>Routing:</b> Uniswap V3 (${quote.routing})
+
+🔗 <b>Non-Custodial Execution</b>
+<a href="${executeUrl}">Review & Execute Trade on Dashboard</a>
+<i>Powered by Lattice Engine</i>`;
+  }
+
+  return `⚡ Lattice ${actionText}: $${quote.toToken.symbol}
+Pay: ${quote.amountIn} ${quote.fromToken.symbol}
+Est. Receive: ${quote.amountOut} ${quote.toToken.symbol}
+Impact: ~${quote.priceImpactPct}% | DEX: Uniswap V3
+
+Review & sign in bio link dashboard! #Lattice #Trade`;
 }

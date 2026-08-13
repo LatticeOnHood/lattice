@@ -2,12 +2,14 @@ import { pool } from "../db/index";
 import { getWalletByXUserId, getWalletByXHandle, linkXAccount } from "../services/auth/accountBindingService";
 import { fetchTokenAuditData } from "../services/codex";
 import { parseIntentWithGroq } from "../services/groq";
+import { quoteSwap } from "../lib/uniswap";
 import {
   renderTwitterAuditReply,
   renderSpecificMetricsCard,
   renderUnlinkedAccountNotice,
   renderHelpNotice,
   renderInvalidChainNotice,
+  renderTradeQuoteCard,
 } from "../templates/cardRenderer";
 
 export interface TwitterIncomingMention {
@@ -49,6 +51,19 @@ export async function processTwitterMention(mention: TwitterIncomingMention): Pr
 
   if (intent.action === "INVALID_CHAIN") {
     return renderInvalidChainNotice("X");
+  }
+
+  if (intent.action === "TRADE" && intent.tradeDetails) {
+    try {
+      const { fromToken, toToken, amountIn } = intent.tradeDetails;
+      const quote = await quoteSwap(fromToken, toToken, amountIn);
+      if (!quote) {
+        return `⚠️ No active Uniswap V3 pool found for ${fromToken} -> ${toToken}. #Lattice`;
+      }
+      return renderTradeQuoteCard(quote, "X", intent.tradeDetails);
+    } catch (err: any) {
+      return `❌ Trade Error: ${err.message || "Unable to quote trade."} #Lattice`;
+    }
   }
 
   if ((intent.action === "AUDIT" || intent.action === "SPECIFIC_METRICS") && intent.tokenAddress) {

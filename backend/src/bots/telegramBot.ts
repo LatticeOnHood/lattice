@@ -2,12 +2,14 @@ import { pool } from "../db/index";
 import { getWalletByTelegramUserId } from "../services/auth/accountBindingService";
 import { fetchTokenAuditData } from "../services/codex";
 import { parseIntentWithGroq } from "../services/groq";
+import { quoteSwap } from "../lib/uniswap";
 import {
   renderTelegramAuditCard,
   renderSpecificMetricsCard,
   renderUnlinkedAccountNotice,
   renderHelpNotice,
   renderInvalidChainNotice,
+  renderTradeQuoteCard,
 } from "../templates/cardRenderer";
 
 export interface TelegramIncomingMessage {
@@ -103,6 +105,19 @@ Click the link below to connect your EVM wallet and bind your Telegram account:
 
   if (intent.action === "INVALID_CHAIN") {
     return renderInvalidChainNotice("TELEGRAM");
+  }
+
+  if (intent.action === "TRADE" && intent.tradeDetails) {
+    try {
+      const { fromToken, toToken, amountIn } = intent.tradeDetails;
+      const quote = await quoteSwap(fromToken, toToken, amountIn);
+      if (!quote) {
+        return `⚠️ No active Uniswap V3 liquidity route found for <code>${fromToken}</code> → <code>${toToken}</code>.`;
+      }
+      return renderTradeQuoteCard(quote, "TELEGRAM", intent.tradeDetails);
+    } catch (err: any) {
+      return `❌ Trade Quote Error: ${err.message || "Failed to generate quote."}`;
+    }
   }
 
   if ((intent.action === "AUDIT" || intent.action === "SPECIFIC_METRICS") && intent.tokenAddress) {
