@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Check, Loader2, Send, X as XIcon } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { ACCENT } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/components/auth/session-provider";
@@ -65,13 +65,15 @@ export function LinkedAccountsCard({ className }: { className?: string }) {
 
       <div className="space-y-px">
         <Row
-          icon={<XIcon className="h-3.5 w-3.5" />}
+          /* eslint-disable-next-line @next/next/no-img-element */
+          icon={<img src="/icons8-x-100.png" alt="X" className="h-3.5 w-3.5 object-contain" />}
           label="X (Twitter)"
           value={xLinked ? `@${xHandle}` : "Not Linked"}
           linked={xLinked}
         />
         <Row
-          icon={<Send className="h-3.5 w-3.5" />}
+          /* eslint-disable-next-line @next/next/no-img-element */
+          icon={<img src="/icons8-telegram-144.png" alt="Telegram" className="h-3.5 w-3.5 object-contain" />}
           label="Telegram"
           value={
             telegramLinked ? (telegramUsername ? `@${telegramUsername}` : "Linked") : "Not Linked"
@@ -87,7 +89,7 @@ export function LinkedAccountsCard({ className }: { className?: string }) {
             Recommended Next Step
           </span>
           <p className="mt-3 text-[11px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
-            Link Telegram to trigger audits from group chats and DMs with the same wallet.
+            Link Telegram to trigger audits from group chats and DMs with @latticehood_bot.
           </p>
           <div className="mt-4 flex items-center gap-3">
             <TelegramLoginButton
@@ -108,7 +110,7 @@ export function LinkedAccountsCard({ className }: { className?: string }) {
             Recommended Next Step
           </span>
           <p className="mt-3 text-[11px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
-            Link X to trigger automated audits by mentioning @LatticeBot in any thread.
+            Link X to trigger automated audits by mentioning @latticehoodbot on X in any thread.
           </p>
           <button
             type="button"

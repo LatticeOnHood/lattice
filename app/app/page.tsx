@@ -65,7 +65,7 @@ export default function AppPage() {
         <p className="mt-3 max-w-xl text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/60 sm:text-[11px]">
           Paste a Robinhood Chain contract address for a structured on-chain
           report. Your wallet binding is what lets{" "}
-          <span style={{ color: ACCENT }}>@LatticeBot</span> answer for you in X
+          <span style={{ color: ACCENT }}>@latticehoodbot on X or @latticehood_bot on Telegram</span> answer for you in X
           and Telegram.
         </p>
       </header>

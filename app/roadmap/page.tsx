@@ -23,7 +23,7 @@ const PHASES = [
     title: "Social Bot Launch",
     status: "Next",
     items: [
-      "@LatticeBot live on X and Telegram.",
+      "@latticehoodbot on X and @latticehood_bot on Telegram live.",
       "Command parsing: check [contract_address], or a bare CA in a reply.",
       "Compact scorecard threaded in-reply — verdict, liquidity, top-10 %, market cap, LP lock, ownership.",
       "Per-account rate limits and a 2-5 minute report cache per CA to protect the data budget.",

@@ -11,7 +11,7 @@ const SECTIONS = [
     title: "Abstract",
     paragraphs: [
       "Lattice (LAT) is an on-chain verification protocol delivered natively through X and Telegram. It does not move money. It answers the question every trader asks in the seconds after seeing a new token mentioned: is this safe, and is the project actually doing what it claims?",
-      "A user tags @LatticeBot with a token's contract address — in a reply, a quote, or a DM — and the bot responds in-thread with a structured report. No wallet connection, no signature, no gas, and no funds ever touch Lattice.",
+      "A user tags @latticehoodbot on X or @latticehood_bot on Telegram with a token's contract address — in a reply, a quote, or a DM — and the bot responds in-thread with a structured report. No wallet connection, no signature, no gas, and no funds ever touch Lattice.",
     ],
   },
   {
@@ -26,7 +26,7 @@ const SECTIONS = [
     n: "03",
     title: "Interface",
     paragraphs: [
-      "The core interface is @LatticeBot on X and Telegram. Every command is a read-only query, never a transaction.",
+      "The core interface is @latticehoodbot on X and @latticehood_bot on Telegram. Every command is a read-only query, never a transaction.",
       "Commands: check [contract_address], a bare contract address in a reply to the bot, or check @projecthandle for projects that have self-verified.",
       "Execution is fully read-only — no signature prompt, no wallet deep link. A report can be generated with zero interaction from the sender beyond the tag itself. Responses are self-contained scorecards in the reply text rather than raw links, keeping the bot inside platform content rules; a deeper report lives behind the bot's bio link.",
     ],

@@ -25,7 +25,7 @@ const STEPS = [
   {
     n: "01",
     title: "Tag The Bot",
-    body: "Reply, quote or DM @LatticeBot with a token contract address. No wallet connection, no signature, no gas.",
+    body: "Reply, quote or DM @latticehoodbot on X or @latticehood_bot on Telegram with a token contract address. No wallet connection, no signature, no gas.",
   },
   {
     n: "02",

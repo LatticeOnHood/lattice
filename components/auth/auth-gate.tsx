@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Loader2, Send, X as XIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useAccount } from "wagmi";
 import { ACCENT, SURFACE } from "@/lib/brand";
 import { cn } from "@/lib/utils";
@@ -96,7 +96,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         {/* Option 1: X (Twitter) */}
         <div className="border border-black/10 p-5" style={{ backgroundColor: SURFACE }}>
           <div className="flex items-center gap-2.5">
-            <XIcon className="h-4 w-4 text-black" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons8-x-100.png" alt="X" className="h-4 w-4 object-contain" />
             <span className="text-xs font-semibold uppercase tracking-widest text-black">
               Link X (Twitter) Account
             </span>
@@ -113,7 +114,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             )}
             style={{ backgroundColor: ACCENT }}
           >
-            {pending === "signin" && <Loader2 className="h-4 w-4 animate-spin" />}
+            {pending === "signin" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src="/icons8-x-100.png" alt="X" className="h-4 w-4 object-contain invert" />
+            )}
             {pending === "signin" ? "Check Your Wallet" : "Link X Account"}
           </button>
         </div>
@@ -121,7 +127,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         {/* Option 2: Telegram */}
         <div className="border border-black/10 p-5" style={{ backgroundColor: SURFACE }}>
           <div className="flex items-center gap-2.5">
-            <Send className="h-4 w-4" style={{ color: ACCENT }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons8-telegram-144.png" alt="Telegram" className="h-4 w-4 object-contain" />
             <span className="text-xs font-semibold uppercase tracking-widest text-black">
               Link Telegram Account
             </span>
