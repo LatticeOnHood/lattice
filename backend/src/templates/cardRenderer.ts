@@ -32,8 +32,15 @@ export function renderTelegramAuditCard(metrics: DexScreenerTokenMetrics): strin
     ? `• <b>ATH Price:</b> <code>${formatPrice(metrics.athPrice)}</code> (${formatUsd(metrics.athFdv)})\n`
     : "";
 
+  const devHoldingsStr = metrics.devHoldingsPct !== undefined
+    ? ` (Holdings: ${metrics.devHoldingsPct.toFixed(2)}%)`
+    : "";
+  const devTxnsStr = (metrics.devBuys !== undefined || metrics.devSells !== undefined)
+    ? ` | 🟢 <code>${metrics.devBuys || 0} Buys</code> | 🔴 <code>${metrics.devSells || 0} Sells</code>`
+    : "";
+
   const creatorSection = metrics.creatorAddress
-    ? `• <b>Deployer:</b> <code>${metrics.creatorAddress.slice(0, 6)}...${metrics.creatorAddress.slice(-4)}</code>\n`
+    ? `• <b>Dev Wallet:</b> <code>${metrics.creatorAddress.slice(0, 6)}...${metrics.creatorAddress.slice(-4)}</code>${devHoldingsStr}${devTxnsStr}\n`
     : "";
 
   const securityHeader = (holdersSection || athSection || creatorSection)
@@ -68,12 +75,15 @@ export function renderTwitterAuditReply(metrics: DexScreenerTokenMetrics): strin
   const priceChangeIcon = priceChange >= 0 ? "📈" : "📉";
   const changeStr = `${priceChangeIcon}${priceChange >= 0 ? "+" : ""}${priceChange.toFixed(1)}%`;
   const top10Str = metrics.top10HoldersPct ? ` | Top10: ${metrics.top10HoldersPct.toFixed(1)}%` : "";
+  const devStr = metrics.creatorAddress
+    ? `\nDev Wallet: ${metrics.creatorAddress.slice(0, 6)}...${metrics.creatorAddress.slice(-4)} (${metrics.devHoldingsPct !== undefined ? metrics.devHoldingsPct.toFixed(1) : "0"}% | 🟢${metrics.devBuys || 0}/🔴${metrics.devSells || 0})`
+    : "";
 
   return `🔮 $${metrics.symbol} Token Audit
 Price: ${formatPrice(metrics.priceUsd)}
 MCap: ${formatUsd(metrics.marketCap)} | LP: ${formatUsd(metrics.liquidityUsd)}
 24h Vol: ${formatUsd(metrics.volume24h)} (${changeStr})
-24h Tx: 🟢${metrics.buys24h || 0} / 🔴${metrics.sells24h || 0}${top10Str}
+24h Tx: 🟢${metrics.buys24h || 0} / 🔴${metrics.sells24h || 0}${top10Str}${devStr}
 DEX: ${(metrics.dexId || "uniswap").toUpperCase()}
 
 #Lattice #RobinhoodEVM #TokenAudit`;
@@ -159,7 +169,7 @@ export function renderSpecificMetricsCard(
         } else {
           lines.push(
             isTelegram
-              ? `• <b>Top 10 Holders:</b> <code>${metrics.top10HoldersPct ? `${metrics.top10HoldersPct.toFixed(2)}%` : "N/A"}</code>`
+              ? `• <b>Top 10 Holders:</b> <code>${metrics.top10HoldersPct ? `${metrics.top10HoldersPct.toFixed(2)}%` : "N/A"}`
               : `• Top 10 Holders: ${metrics.top10HoldersPct ? `${metrics.top10HoldersPct.toFixed(1)}%` : "N/A"}`
           );
         }
@@ -182,10 +192,13 @@ export function renderSpecificMetricsCard(
         {
           const addr = metrics.creatorAddress;
           const fmt = addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "Unknown";
+          const hold = metrics.devHoldingsPct !== undefined ? `${metrics.devHoldingsPct.toFixed(1)}%` : "0%";
+          const buys = metrics.devBuys || 0;
+          const sells = metrics.devSells || 0;
           lines.push(
             isTelegram
-              ? `• <b>Deployer:</b> <code>${fmt}</code>`
-              : `• Dev: ${fmt}`
+              ? `• <b>Dev Wallet:</b> <code>${fmt}</code> (Holdings: <code>${hold}</code> | 🟢 <code>${buys} Buys</code> / 🔴 <code>${sells} Sells</code>)`
+              : `• Dev Wallet: ${fmt} (${hold} hold | 🟢${buys}/🔴${sells})`
           );
         }
         break;

@@ -221,6 +221,10 @@ export interface TokenMetrics {
   websites?: string[];
   twitter?: string;
   telegram?: string;
+  creatorAddress?: string;
+  devHoldingsPct?: number;
+  devBuys?: number;
+  devSells?: number;
 }
 
 export interface AuditResult {

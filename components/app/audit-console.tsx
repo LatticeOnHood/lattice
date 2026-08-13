@@ -138,6 +138,12 @@ export function AuditConsole() {
               accent={change >= 0 ? ACCENT : "#B91C1C"}
             />
             <Metric label="Buys / Sells 24H" value={`${result.buys24h} / ${result.sells24h}`} />
+            {result.creatorAddress && (
+              <Metric
+                label="Dev Wallet"
+                value={`${result.creatorAddress.slice(0, 6)}...${result.creatorAddress.slice(-4)} (${result.devHoldingsPct !== undefined ? result.devHoldingsPct.toFixed(1) : "0"}% · 🟢${result.devBuys || 0}/🔴${result.devSells || 0})`}
+              />
+            )}
           </div>
 
           <div className="border border-black/10 bg-white p-6 md:p-8">

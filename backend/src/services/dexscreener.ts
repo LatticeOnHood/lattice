@@ -23,6 +23,9 @@ export interface DexScreenerTokenMetrics {
   athFdv?: number;
   atlPrice?: number;
   creatorAddress?: string;
+  devHoldingsPct?: number;
+  devBuys?: number;
+  devSells?: number;
 }
 
 const EVM_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;

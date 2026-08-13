@@ -54,6 +54,9 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
         const athFdv = Number(token.extrema?.athFdv || token.extrema?.athCircMc) || undefined;
         const atlPrice = Number(token.extrema?.atlPrice) || undefined;
         const creatorAddress = token.creatorAddress || token.creator?.address || undefined;
+        const devHoldingsPct = Number(token.creatorHoldingsPercent ?? token.creatorHoldingsPct ?? token.creatorBalancePercent ?? 0);
+        const devBuys = Number(token.creatorBuys ?? token.creatorTxns?.buys ?? 0);
+        const devSells = Number(token.creatorSells ?? token.creatorTxns?.sells ?? 0);
 
         return {
           address: normalizedAddress,
@@ -79,6 +82,9 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
           athFdv,
           atlPrice,
           creatorAddress,
+          devHoldingsPct,
+          devBuys,
+          devSells,
         };
       }
     } catch (err) {
