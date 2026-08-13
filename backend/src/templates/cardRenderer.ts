@@ -67,6 +67,12 @@ ${metrics.twitter ? `• <a href="${metrics.twitter}">Twitter / X</a>\n` : ""}${
 <i>Powered by Lattice Audit Engine</i>`;
 }
 
+export function extractTwitterHandle(url?: string): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)/i);
+  return match && match[1] !== "intent" ? `@${match[1]}` : null;
+}
+
 /**
  * Renders X (Twitter) Tweet Reply Card (<280 chars)
  */
@@ -79,13 +85,16 @@ export function renderTwitterAuditReply(metrics: DexScreenerTokenMetrics): strin
     ? `\nDev Wallet: ${metrics.creatorAddress.slice(0, 6)}...${metrics.creatorAddress.slice(-4)} (${metrics.devHoldingsPct !== undefined ? metrics.devHoldingsPct.toFixed(1) : "0"}% | 🟢${metrics.devBuys || 0}/🔴${metrics.devSells || 0})`
     : "";
 
+  const handle = extractTwitterHandle(metrics.twitter);
+  const xHandleStr = handle ? ` | X: ${handle}` : "";
+
   return `🔮 $${metrics.symbol} Token Audit
 CA: ${metrics.address}
 Price: ${formatPrice(metrics.priceUsd)}
 MCap: ${formatUsd(metrics.marketCap)} | LP: ${formatUsd(metrics.liquidityUsd)}
 24h Vol: ${formatUsd(metrics.volume24h)} (${changeStr})
 24h Tx: 🟢${metrics.buys24h || 0} / 🔴${metrics.sells24h || 0}${top10Str}${devStr}
-DEX: ${(metrics.dexId || "uniswap").toUpperCase()}
+DEX: ${(metrics.dexId || "uniswap").toUpperCase()}${xHandleStr}
 
 #Lattice #RobinhoodEVM #TokenAudit`;
 }
