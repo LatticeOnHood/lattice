@@ -151,11 +151,9 @@ function SuccessScreen({
       )}
 
       {xLinked && telegramLinked && (
-        <div className="mt-6 border border-emerald-200 bg-emerald-50 p-4 rounded-md text-center">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
-            🎉 Both X and Telegram accounts are fully bound to this wallet!
-          </p>
-        </div>
+        <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-widest text-black/60">
+          Both X and Telegram accounts are fully bound to this wallet.
+        </p>
       )}
 
       {/* Primary Action Button to Console */}
