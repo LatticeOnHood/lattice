@@ -7,7 +7,7 @@ let currentRefreshToken = process.env.X_REFRESH_TOKEN || "";
 const X_CLIENT_ID = process.env.X_CLIENT_ID || "";
 const X_CLIENT_SECRET = process.env.X_CLIENT_SECRET || "";
 const X_BOT_ENABLED = process.env.X_BOT_ENABLED === "true";
-export const POLL_INTERVAL_MS = 30000; // 30 seconds
+export const POLL_INTERVAL_MS = 60000; // 60 seconds (strictly fits Twitter API 15 req / 15 min limit)
 
 let lastSeenTweetId: string | null = null;
 let cachedBotUserId: string | null = null;

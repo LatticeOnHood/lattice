@@ -12,11 +12,11 @@ export interface TelegramAccountBinding {
   telegramUsername?: string;
 }
 
-async function queryWithTimeout(text: string, params: any[], ms = 1000) {
+async function queryWithTimeout(text: string, params: any[], ms = 5000) {
   return Promise.race([
     pool.query(text, params),
     new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Query timeout")), ms)
+      setTimeout(() => reject(new Error(`Query timeout after ${ms}ms`)), ms)
     ),
   ]);
 }
@@ -36,7 +36,8 @@ export async function getLinkedXAccountByWallet(walletAddress: string): Promise<
       xUserId: rows[0].x_user_id,
       xHandle: rows[0].x_handle,
     };
-  } catch (err) {
+  } catch (err: any) {
+    console.error("[db-auth] getLinkedXAccountByWallet error:", err.message);
     return null;
   }
 }
@@ -51,7 +52,8 @@ export async function getWalletByXUserId(xUserId: string): Promise<string | null
       [xUserId]
     );
     return rows.length === 0 ? null : rows[0].wallet_address;
-  } catch (err) {
+  } catch (err: any) {
+    console.error("[db-auth] getWalletByXUserId error:", err.message);
     return null;
   }
 }
@@ -67,7 +69,8 @@ export async function getWalletByXHandle(handle: string): Promise<string | null>
       [normalized]
     );
     return rows.length === 0 ? null : rows[0].wallet_address;
-  } catch (err) {
+  } catch (err: any) {
+    console.error("[db-auth] getWalletByXHandle error:", err.message);
     return null;
   }
 }
