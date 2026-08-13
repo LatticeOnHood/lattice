@@ -6,7 +6,7 @@ import { useAccount } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 
 /** Routes that already host a step of the onboarding flow. */
-const FLOW_ROUTES = ["/app", "/auth/callback"];
+const FLOW_ROUTES = ["/app", "/connect", "/auth/callback"];
 
 /**
  * Carries the user from step 1 into step 2 of the onboarding flow.
