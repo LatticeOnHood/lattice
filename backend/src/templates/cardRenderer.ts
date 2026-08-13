@@ -80,6 +80,7 @@ export function renderTwitterAuditReply(metrics: DexScreenerTokenMetrics): strin
     : "";
 
   return `🔮 $${metrics.symbol} Token Audit
+CA: ${metrics.address}
 Price: ${formatPrice(metrics.priceUsd)}
 MCap: ${formatUsd(metrics.marketCap)} | LP: ${formatUsd(metrics.liquidityUsd)}
 24h Vol: ${formatUsd(metrics.volume24h)} (${changeStr})

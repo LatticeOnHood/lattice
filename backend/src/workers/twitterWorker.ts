@@ -1,5 +1,5 @@
 import { processTwitterMention } from "../bots/twitterBot";
-import { refreshXAccessToken } from "../services/auth/oauth";
+import { refreshXAccessToken, getAuthenticatedXUser } from "../services/auth/oauth";
 
 let currentAccessToken = process.env.X_ACCESS_TOKEN || "";
 let currentRefreshToken = process.env.X_REFRESH_TOKEN || "";
@@ -9,7 +9,22 @@ const X_BOT_ENABLED = process.env.X_BOT_ENABLED === "true";
 export const POLL_INTERVAL_MS = 30000; // 30 seconds
 
 let lastSeenTweetId: string | null = null;
+let cachedBotUserId: string | null = null;
 let isPolling = false;
+
+async function getBotUserId(): Promise<string | null> {
+  if (cachedBotUserId) return cachedBotUserId;
+  if (!currentAccessToken) return null;
+  try {
+    const user = await getAuthenticatedXUser(currentAccessToken);
+    cachedBotUserId = user.id;
+    console.log(`[twitter-worker] Resolved bot X User ID: ${user.id} (@${user.username})`);
+    return cachedBotUserId;
+  } catch (err: any) {
+    console.error("[twitter-worker] Failed to resolve bot X User ID:", err.message);
+    return null;
+  }
+}
 
 async function tryRefreshToken(): Promise<boolean> {
   if (!currentRefreshToken || !X_CLIENT_ID || !X_CLIENT_SECRET) {
@@ -25,6 +40,8 @@ async function tryRefreshToken(): Promise<boolean> {
     if (refreshed.refresh_token) {
       currentRefreshToken = refreshed.refresh_token;
     }
+    // Invalidate cached bot user ID so it re-verifies on next call
+    cachedBotUserId = null;
     console.log("[twitter-worker] Successfully refreshed X OAuth access token.");
     return true;
   } catch (err: any) {
@@ -39,7 +56,10 @@ async function tryRefreshToken(): Promise<boolean> {
 async function fetchBotMentions(sinceId?: string, isRetry = false): Promise<any[]> {
   if (!currentAccessToken) return [];
 
-  const url = new URL("https://api.twitter.com/2/users/me/mentions");
+  const botUserId = await getBotUserId();
+  if (!botUserId) return [];
+
+  const url = new URL(`https://api.twitter.com/2/users/${botUserId}/mentions`);
   url.searchParams.set("tweet.fields", "author_id,created_at,text");
   url.searchParams.set("max_results", "10");
   if (sinceId) {
