@@ -49,6 +49,7 @@ export function TradeConsole() {
     amountOut: string;
     priceImpactPct: number;
     routing: string;
+    dexVersion: string;
   } | null>(null);
 
   // Fetch live price quote from backend
@@ -71,6 +72,7 @@ export function TradeConsole() {
           amountOut: data.quote.amountOut,
           priceImpactPct: data.quote.priceImpactPct,
           routing: data.quote.routing,
+          dexVersion: data.quote.dexVersion || "V3",
         });
       } else {
         setQuoteResult(null);
@@ -265,7 +267,7 @@ export function TradeConsole() {
               </div>
               <div className="flex justify-between text-black/60">
                 <span>DEX Router</span>
-                <span className="font-mono uppercase text-black/70">Uniswap V3</span>
+                <span className="font-mono uppercase text-black font-semibold">Uniswap {quoteResult.dexVersion}</span>
               </div>
             </div>
           )}

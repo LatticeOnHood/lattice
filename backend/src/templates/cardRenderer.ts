@@ -318,13 +318,15 @@ export function renderTradeQuoteCard(
   const actionText = side === "BUY" ? "Buy Quote" : "Sell Quote";
   const executeUrl = `https://latticehood.app/trade?from=${quote.fromToken.symbol}&to=${quote.toToken.symbol}&amount=${quote.amountIn}`;
 
+  const dexVer = quote.dexVersion || "V3";
+
   if (platform === "TELEGRAM") {
     return `⚡ <b>Lattice ${actionText} — $${quote.toToken.symbol}</b>
 
 • <b>Pay:</b> <code>${quote.amountIn} ${quote.fromToken.symbol}</code>
 • <b>Receive (Est.):</b> <code>${quote.amountOut} ${quote.toToken.symbol}</code>
 • <b>Price Impact:</b> <code>~${quote.priceImpactPct}%</code>
-• <b>Routing:</b> Uniswap V3 (${quote.routing})
+• <b>Routing:</b> Uniswap ${dexVer} (${quote.routing})
 
 🔗 <b>Non-Custodial Execution</b>
 <a href="${executeUrl}">Review & Execute Trade on Dashboard</a>
@@ -334,7 +336,7 @@ export function renderTradeQuoteCard(
   return `⚡ Lattice ${actionText}: $${quote.toToken.symbol}
 Pay: ${quote.amountIn} ${quote.fromToken.symbol}
 Est. Receive: ${quote.amountOut} ${quote.toToken.symbol}
-Impact: ~${quote.priceImpactPct}% | DEX: Uniswap V3
+Impact: ~${quote.priceImpactPct}% | DEX: Uniswap ${dexVer}
 
 Review & sign in bio link dashboard! #Lattice #Trade`;
 }

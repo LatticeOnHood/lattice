@@ -34,6 +34,7 @@ router.post("/quote", async (req: Request, res: Response) => {
         priceImpactPct: quote.priceImpactPct,
         routing: quote.routing,
         feeTier: quote.feeTier,
+        dexVersion: quote.dexVersion,
       },
     });
   } catch (err: any) {

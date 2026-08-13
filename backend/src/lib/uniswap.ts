@@ -1,9 +1,13 @@
 import { encodePacked, formatUnits, parseUnits, createPublicClient, http } from "viem";
 import { resolveToken, ETH, USDG, TokenInfo } from "./rwaTokens";
+import { quoteV4Direct, V4Quote, PoolKey } from "./uniswapV4";
 
 const RPC_URL = process.env.ROBINHOOD_RPC_URL || "https://rpc.robinhood.org";
-const QUOTER_V2_ADDRESS = (process.env.UNISWAP_QUOTER_V2 || "0x61fFe014bA17989E743c5F6cB21bF9697540B21e") as `0x${string}`;
-const SWAP_ROUTER_ADDRESS = (process.env.UNISWAP_SWAP_ROUTER || "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD") as `0x${string}`;
+
+const V3_QUOTER_ADDRESS = (process.env.UNISWAP_V3_QUOTER_ADDRESS || "0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7") as `0x${string}`;
+const V3_SWAP_ROUTER_ADDRESS = (process.env.UNISWAP_V3_SWAP_ROUTER_ADDRESS || "0xcaf681a66d020601342297493863e78c959e5cb2") as `0x${string}`;
+const UNIVERSAL_ROUTER_ADDRESS = (process.env.UNISWAP_UNIVERSAL_ROUTER_ADDRESS || "0x8876789976decbfcbbbe364623c63652db8c0904") as `0x${string}`;
+
 const WETH_ADDRESS = ETH.address;
 
 const QUOTER_V2_ABI = [
@@ -56,9 +60,11 @@ export interface SwapQuote {
   amountOut: string;
   amountOutWei: bigint;
   priceImpactPct: number;
-  routing: "direct" | "via-weth";
+  routing: "v3-direct" | "v3-via-weth" | "v4-direct";
   feeTier: number;
+  dexVersion: "V3" | "V4";
   path?: `0x${string}`;
+  v4Quote?: V4Quote;
   quoterAddress: `0x${string}`;
   routerAddress: `0x${string}`;
 }
@@ -93,11 +99,37 @@ export async function quoteSwap(
   const amountInWei = parseUnits(amountInStr, fromToken.decimals);
   if (amountInWei <= 0n) return null;
 
-  // 1. Try Direct Pool first across fee tiers
+  const candidateQuotes: SwapQuote[] = [];
+
+  // 1. Quote Uniswap V4 Direct
+  try {
+    const v4 = await quoteV4Direct(client, fromToken.address, toToken.address, amountInWei);
+    if (v4 && v4.amountOut > 0n) {
+      candidateQuotes.push({
+        fromToken,
+        toToken,
+        amountIn: amountInStr,
+        amountInWei,
+        amountOut: formatUnits(v4.amountOut, toToken.decimals),
+        amountOutWei: v4.amountOut,
+        priceImpactPct: 0.15,
+        routing: "v4-direct",
+        feeTier: v4.fee,
+        dexVersion: "V4",
+        v4Quote: v4,
+        quoterAddress: process.env.UNISWAP_V4_QUOTER_ADDRESS as `0x${string}` || "0x8dc178efb8111bb0973dd9d722ebeff267c98f94",
+        routerAddress: UNIVERSAL_ROUTER_ADDRESS,
+      });
+    }
+  } catch (err) {
+    console.warn("[uniswap-v4] V4 quoting warning:", err);
+  }
+
+  // 2. Quote Uniswap V3 Direct Pool
   for (const fee of FEE_TIERS) {
     try {
       const res = await client.simulateContract({
-        address: QUOTER_V2_ADDRESS,
+        address: V3_QUOTER_ADDRESS,
         abi: QUOTER_V2_ABI,
         functionName: "quoteExactInputSingle",
         args: [
@@ -113,34 +145,34 @@ export async function quoteSwap(
 
       const amountOutWei = (res.result as any)[0] as bigint;
       if (amountOutWei > 0n) {
-        const amountOut = formatUnits(amountOutWei, toToken.decimals);
-        return {
+        candidateQuotes.push({
           fromToken,
           toToken,
           amountIn: amountInStr,
           amountInWei,
-          amountOut,
+          amountOut: formatUnits(amountOutWei, toToken.decimals),
           amountOutWei,
-          priceImpactPct: 0.2, // Est. low impact for direct pool
-          routing: "direct",
+          priceImpactPct: 0.2,
+          routing: "v3-direct",
           feeTier: fee,
-          quoterAddress: QUOTER_V2_ADDRESS,
-          routerAddress: SWAP_ROUTER_ADDRESS,
-        };
+          dexVersion: "V3",
+          quoterAddress: V3_QUOTER_ADDRESS,
+          routerAddress: V3_SWAP_ROUTER_ADDRESS,
+        });
       }
     } catch {
       continue;
     }
   }
 
-  // 2. If direct pool missed, try 2-hop routing via WETH
+  // 3. Quote Uniswap V3 2-Hop via WETH
   if (fromToken.address.toLowerCase() !== WETH_ADDRESS.toLowerCase() && toToken.address.toLowerCase() !== WETH_ADDRESS.toLowerCase()) {
     for (const feeIn of FEE_TIERS) {
       for (const feeOut of FEE_TIERS) {
         try {
           const path = encodeWethPath(fromToken.address, feeIn, toToken.address, feeOut);
           const res = await client.simulateContract({
-            address: QUOTER_V2_ADDRESS,
+            address: V3_QUOTER_ADDRESS,
             abi: QUOTER_V2_ABI,
             functionName: "quoteExactInput",
             args: [path, amountInWei],
@@ -148,21 +180,21 @@ export async function quoteSwap(
 
           const amountOutWei = (res.result as any)[0] as bigint;
           if (amountOutWei > 0n) {
-            const amountOut = formatUnits(amountOutWei, toToken.decimals);
-            return {
+            candidateQuotes.push({
               fromToken,
               toToken,
               amountIn: amountInStr,
               amountInWei,
-              amountOut,
+              amountOut: formatUnits(amountOutWei, toToken.decimals),
               amountOutWei,
-              priceImpactPct: 0.5, // Est. 2-hop impact
-              routing: "via-weth",
+              priceImpactPct: 0.5,
+              routing: "v3-via-weth",
               feeTier: feeIn,
+              dexVersion: "V3",
               path,
-              quoterAddress: QUOTER_V2_ADDRESS,
-              routerAddress: SWAP_ROUTER_ADDRESS,
-            };
+              quoterAddress: V3_QUOTER_ADDRESS,
+              routerAddress: V3_SWAP_ROUTER_ADDRESS,
+            });
           }
         } catch {
           continue;
@@ -171,5 +203,9 @@ export async function quoteSwap(
     }
   }
 
-  return null;
+  if (candidateQuotes.length === 0) return null;
+
+  // Pick the candidate with the highest amountOut!
+  candidateQuotes.sort((a, b) => (b.amountOutWei > a.amountOutWei ? 1 : b.amountOutWei < a.amountOutWei ? -1 : 0));
+  return candidateQuotes[0];
 }
