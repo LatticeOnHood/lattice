@@ -1,9 +1,9 @@
 import { erc20Abi, getAddress, isAddress } from "viem";
 import { createPublicClient, http } from "viem";
 
-const RPC_URL = process.env.ROBINHOOD_RPC_URL || "https://rpc.robinhood.org";
-const WETH_ADDRESS = (process.env.WETH_ADDRESS || "0x4200000000000000000000000000000000000006") as `0x${string}`;
-const USDG_ADDRESS = (process.env.USDG_ADDRESS || "0x2080000000000000000000000000000000000001") as `0x${string}`;
+const RPC_URL = process.env.ROBINHOOD_RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
+const WETH_ADDRESS = (process.env.UNISWAP_WETH_ADDRESS || process.env.WETH_ADDRESS || "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73") as `0x${string}`;
+const USDG_ADDRESS = (process.env.ROBINHOOD_USDG_ADDRESS || process.env.USDG_ADDRESS || "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168") as `0x${string}`;
 
 export interface TokenInfo {
   symbol: string;

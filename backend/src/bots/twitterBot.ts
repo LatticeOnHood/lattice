@@ -58,7 +58,7 @@ export async function processTwitterMention(mention: TwitterIncomingMention): Pr
       const { fromToken, toToken, amountIn } = intent.tradeDetails;
       const quote = await quoteSwap(fromToken, toToken, amountIn);
       if (!quote) {
-        return `⚠️ No active Uniswap V3 pool found for ${fromToken} -> ${toToken}. #Lattice`;
+        return `⚠️ No active Uniswap liquidity route found for ${fromToken} -> ${toToken}. #Lattice`;
       }
       return renderTradeQuoteCard(quote, "X", intent.tradeDetails);
     } catch (err: any) {

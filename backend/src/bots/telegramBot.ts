@@ -112,7 +112,7 @@ Click the link below to connect your EVM wallet and bind your Telegram account:
       const { fromToken, toToken, amountIn } = intent.tradeDetails;
       const quote = await quoteSwap(fromToken, toToken, amountIn);
       if (!quote) {
-        return `⚠️ No active Uniswap V3 liquidity route found for <code>${fromToken}</code> → <code>${toToken}</code>.`;
+        return `⚠️ No active Uniswap liquidity route found for <code>${fromToken}</code> → <code>${toToken}</code>.`;
       }
       return renderTradeQuoteCard(quote, "TELEGRAM", intent.tradeDetails);
     } catch (err: any) {
