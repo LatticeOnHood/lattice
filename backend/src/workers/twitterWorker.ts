@@ -1,17 +1,43 @@
 import { processTwitterMention } from "../bots/twitterBot";
+import { refreshXAccessToken } from "../services/auth/oauth";
 
-const X_ACCESS_TOKEN = process.env.X_ACCESS_TOKEN || "";
+let currentAccessToken = process.env.X_ACCESS_TOKEN || "";
+let currentRefreshToken = process.env.X_REFRESH_TOKEN || "";
+const X_CLIENT_ID = process.env.X_CLIENT_ID || "";
+const X_CLIENT_SECRET = process.env.X_CLIENT_SECRET || "";
 const X_BOT_ENABLED = process.env.X_BOT_ENABLED === "true";
-const POLL_INTERVAL_MS = 30000; // 30 seconds
+export const POLL_INTERVAL_MS = 30000; // 30 seconds
 
 let lastSeenTweetId: string | null = null;
 let isPolling = false;
 
+async function tryRefreshToken(): Promise<boolean> {
+  if (!currentRefreshToken || !X_CLIENT_ID || !X_CLIENT_SECRET) {
+    return false;
+  }
+  try {
+    const refreshed = await refreshXAccessToken({
+      refreshToken: currentRefreshToken,
+      clientId: X_CLIENT_ID,
+      clientSecret: X_CLIENT_SECRET,
+    });
+    currentAccessToken = refreshed.access_token;
+    if (refreshed.refresh_token) {
+      currentRefreshToken = refreshed.refresh_token;
+    }
+    console.log("[twitter-worker] Successfully refreshed X OAuth access token.");
+    return true;
+  } catch (err: any) {
+    console.error("[twitter-worker] Failed to refresh X OAuth token:", err.message);
+    return false;
+  }
+}
+
 /**
  * Fetches recent mentions for the bot user from Twitter API v2
  */
-async function fetchBotMentions(sinceId?: string): Promise<any[]> {
-  if (!X_ACCESS_TOKEN) return [];
+async function fetchBotMentions(sinceId?: string, isRetry = false): Promise<any[]> {
+  if (!currentAccessToken) return [];
 
   const url = new URL("https://api.twitter.com/2/users/me/mentions");
   url.searchParams.set("tweet.fields", "author_id,created_at,text");
@@ -22,13 +48,22 @@ async function fetchBotMentions(sinceId?: string): Promise<any[]> {
 
   const response = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${X_ACCESS_TOKEN}`,
+      Authorization: `Bearer ${currentAccessToken}`,
     },
   });
 
   if (!response.ok) {
-    if (response.status === 429) {
-      console.warn("[twitter-worker] Rate limited by Twitter API. Backing off.");
+    if (response.status === 401 && !isRetry) {
+      console.warn("[twitter-worker] Access token expired (401). Attempting token refresh...");
+      const refreshed = await tryRefreshToken();
+      if (refreshed) {
+        return fetchBotMentions(sinceId, true);
+      }
+    } else if (response.status === 429) {
+      console.warn("[twitter-worker] Rate limited by Twitter API (429). Backing off for this cycle.");
+    } else {
+      const text = await response.text().catch(() => "");
+      console.warn(`[twitter-worker] Mentions fetch error (${response.status}): ${text}`);
     }
     return [];
   }
@@ -41,13 +76,13 @@ async function fetchBotMentions(sinceId?: string): Promise<any[]> {
  * Posts a reply tweet back to Twitter API v2
  */
 async function postReplyTweet(replyText: string, inReplyToTweetId: string): Promise<boolean> {
-  if (!X_ACCESS_TOKEN) return false;
+  if (!currentAccessToken) return false;
 
   const response = await fetch("https://api.twitter.com/2/tweets", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${X_ACCESS_TOKEN}`,
+      Authorization: `Bearer ${currentAccessToken}`,
     },
     body: JSON.stringify({
       text: replyText,
@@ -56,6 +91,11 @@ async function postReplyTweet(replyText: string, inReplyToTweetId: string): Prom
       },
     }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    console.error(`[twitter-worker] Failed to post reply tweet (${response.status}): ${errorText}`);
+  }
 
   return response.ok;
 }
@@ -103,7 +143,7 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
  * Starts continuous background polling worker
  */
 export function startTwitterWorker() {
-  if (!X_BOT_ENABLED || !X_ACCESS_TOKEN) {
+  if (!X_BOT_ENABLED || !currentAccessToken) {
     console.log("[twitter-worker] X Bot Worker disabled or missing X_ACCESS_TOKEN.");
     return;
   }

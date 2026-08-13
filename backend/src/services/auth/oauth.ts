@@ -91,3 +91,33 @@ export async function getAuthenticatedXUser(accessToken: string): Promise<{ id: 
     name: json.data.name,
   };
 }
+
+export async function refreshXAccessToken(params: {
+  refreshToken: string;
+  clientId: string;
+  clientSecret: string;
+}): Promise<{ access_token: string; refresh_token?: string }> {
+  const credentials = Buffer.from(`${params.clientId}:${params.clientSecret}`).toString("base64");
+
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: params.refreshToken,
+    client_id: params.clientId,
+  });
+
+  const response = await fetch("https://api.twitter.com/2/oauth2/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${credentials}`,
+    },
+    body: body.toString(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to refresh X token: ${errorText}`);
+  }
+
+  return response.json();
+}
