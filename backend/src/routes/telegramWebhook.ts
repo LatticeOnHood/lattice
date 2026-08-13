@@ -39,22 +39,8 @@ router.post("/", async (req: Request, res: Response) => {
         text,
       });
 
-      // Send official Lattice logo sticker alongside audit report
-      const LATTICE_STICKER_FILE_ID = "CAACAgQAAxkBAAMvan3ZsbaJHw98bVrCzFtx2943OTUAAnQeAAIU3vFTuYuAr204bhg9BA";
-
+      // Send reply back to Telegram
       if (TELEGRAM_BOT_TOKEN) {
-        // Send sticker first
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendSticker`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: chatId,
-            sticker: LATTICE_STICKER_FILE_ID,
-            reply_to_message_id: msg.message_id,
-          }),
-        }).catch((err) => console.error("[telegram-bot] Error sending sticker:", err));
-
-        // Send audit card HTML message
         await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -63,6 +49,7 @@ router.post("/", async (req: Request, res: Response) => {
             text: replyText,
             parse_mode: "HTML",
             disable_web_page_preview: false,
+            reply_to_message_id: msg.message_id,
           }),
         }).catch((err) => console.error("[telegram-bot] Error sending message:", err));
       }

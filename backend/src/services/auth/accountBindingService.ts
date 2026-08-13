@@ -12,7 +12,7 @@ export interface TelegramAccountBinding {
   telegramUsername?: string;
 }
 
-async function queryWithTimeout(text: string, params: any[], ms = 5000) {
+async function queryWithTimeout(text: string, params: any[], ms = 2500) {
   return Promise.race([
     pool.query(text, params),
     new Promise<never>((_, reject) =>
