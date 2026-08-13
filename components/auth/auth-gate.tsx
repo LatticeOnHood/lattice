@@ -6,7 +6,6 @@ import { useAccount } from "wagmi";
 import { ACCENT, SURFACE } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/components/auth/session-provider";
-import { TelegramLoginButton } from "@/components/auth/telegram-login-button";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
 import { WALLETCONNECT_ENABLED } from "@/lib/wagmi";
 import { robinhoodChain } from "@/lib/chains";
@@ -42,10 +41,10 @@ function StepFrame({
  * Enforces onboarding flow:
  * Step 1: Connect EVM Wallet
  * Step 2: Separate Platform Selection Screen (Telegram @latticeonhood_bot OR X @latticehoodbot)
- * Step 3: OAuth / Widget Auth & Wallet Verification Signature
+ * Step 3: Direct OAuth / App Link Authorization
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const { status, signIn, linkTelegram, pending } = useSession();
+  const { status, signIn, pending } = useSession();
   const { address, chain } = useAccount();
 
   if (status === "loading") {
@@ -136,27 +135,17 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <p className="mt-2 text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
             Bind @latticeonhood_bot to run instant audits in Telegram group chats and DMs.
           </p>
-          <div className="mt-4 flex flex-col gap-2.5">
-            {(pending as string) === "link-telegram" ? (
-              <div className="flex items-center justify-center gap-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-black/70">
-                <Loader2 className="h-4 w-4 animate-spin" style={{ color: ACCENT }} />
-                <span>Check Your Wallet...</span>
-              </div>
-            ) : (
-              <TelegramLoginButton onAuth={linkTelegram} disabled={Boolean(pending)} />
-            )}
-
-            <a
-              href={`https://t.me/latticeonhood_bot?start=link_${address}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-black/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-black transition-colors hover:bg-black/5"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/icons8-telegram-144.png" alt="Telegram" className="h-3.5 w-3.5 object-contain" />
-              Link Directly via Telegram App
-            </a>
-          </div>
+          <a
+            href={`https://t.me/latticeonhood_bot?start=link_${address}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-[11px] font-semibold uppercase tracking-widest text-white transition-opacity hover:opacity-80 sm:text-xs"
+            style={{ backgroundColor: "#229ED9" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons8-telegram-144.png" alt="Telegram" className="h-4 w-4 object-contain invert" />
+            Link Telegram Account
+          </a>
         </div>
       </div>
 
