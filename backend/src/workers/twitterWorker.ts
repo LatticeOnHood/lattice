@@ -129,14 +129,40 @@ async function postReplyTweet(replyText: string, inReplyToTweetId: string): Prom
     }),
   });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-    console.error(`[twitter-worker] Failed to post reply tweet (${response.status}): ${errorText}`);
-    return null;
+  if (response.ok) {
+    const json = await response.json();
+    return json.data?.id || null;
   }
 
-  const json = await response.json();
-  return json.data?.id || null;
+  const errorText = await response.text().catch(() => "");
+  console.warn(`[twitter-worker] Reply tweet returned ${response.status}: ${errorText}`);
+
+  // Fallback: If HTTP 403 (conversation reply restricted by thread author), post as a Quote Tweet!
+  if (response.status === 403) {
+    console.log("[twitter-worker] Attempting quote tweet fallback for restricted conversation...");
+    const quoteResponse = await fetch("https://api.twitter.com/2/tweets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${currentAccessToken}`,
+      },
+      body: JSON.stringify({
+        text: replyText,
+        quote_tweet_id: inReplyToTweetId,
+      }),
+    });
+
+    if (quoteResponse.ok) {
+      const json = await quoteResponse.json();
+      console.log(`[twitter-worker] Successfully posted quote tweet fallback (id: ${json.data?.id})`);
+      return json.data?.id || null;
+    } else {
+      const quoteErr = await quoteResponse.text().catch(() => "");
+      console.error(`[twitter-worker] Quote tweet fallback failed (${quoteResponse.status}): ${quoteErr}`);
+    }
+  }
+
+  return null;
 }
 
 /**
