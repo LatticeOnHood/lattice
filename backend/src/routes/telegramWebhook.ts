@@ -24,6 +24,13 @@ router.post("/", async (req: Request, res: Response) => {
 
       if (!userId) return;
 
+      if (msg.entities) {
+        const customEmoji = msg.entities.find((e: any) => e.type === "custom_emoji");
+        if (customEmoji && customEmoji.custom_emoji_id) {
+          console.log(`[telegram-bot] Detected Custom Emoji ID: ${customEmoji.custom_emoji_id}`);
+        }
+      }
+
       const replyText = await processTelegramMessage({
         messageId: msg.message_id,
         chatId,
