@@ -136,15 +136,26 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <p className="mt-2 text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
             Bind @latticeonhood_bot to run instant audits in Telegram group chats and DMs.
           </p>
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-4 flex flex-col gap-2.5">
             {(pending as string) === "link-telegram" ? (
-              <div className="flex items-center gap-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-black/70">
+              <div className="flex items-center justify-center gap-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-black/70">
                 <Loader2 className="h-4 w-4 animate-spin" style={{ color: ACCENT }} />
                 <span>Check Your Wallet...</span>
               </div>
             ) : (
               <TelegramLoginButton onAuth={linkTelegram} disabled={Boolean(pending)} />
             )}
+
+            <a
+              href={`https://t.me/latticeonhood_bot?start=link_${address}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-black/20 bg-white px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-black transition-colors hover:bg-black/5"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons8-telegram-144.png" alt="Telegram" className="h-3.5 w-3.5 object-contain" />
+              Link Directly via Telegram App
+            </a>
           </div>
         </div>
       </div>

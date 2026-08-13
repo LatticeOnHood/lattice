@@ -2,6 +2,7 @@
 
 import React, { useEffect, useId, useRef, useState } from "react";
 import type { TelegramWidgetUser } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const BOT_USERNAME = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "latticeonhood_bot").replace(/^@/, "").trim();
 
@@ -82,9 +83,10 @@ export function TelegramLoginButton({
   return (
     <div
       ref={containerRef}
-      className={
-        disabled ? "pointer-events-none opacity-50" : undefined
-      }
+      className={cn(
+        "flex justify-center items-center w-full",
+        disabled && "pointer-events-none opacity-50"
+      )}
       // Telegram renders a fixed-height iframe; reserve the space so the card
       // does not jump once the script resolves.
       style={{ minHeight: 40 }}
