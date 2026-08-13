@@ -18,6 +18,7 @@ export interface DexScreenerTokenMetrics {
   twitter?: string;
   telegram?: string;
   top10HoldersPct?: number;
+  holdersCount?: number;
   athPrice?: number;
   athFdv?: number;
   atlPrice?: number;

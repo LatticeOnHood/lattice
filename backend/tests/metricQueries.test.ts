@@ -22,6 +22,7 @@ describe("Natural Language Specific Metric Queries & Question Binding", () => {
     dexId: "uniswap",
     pairAddress: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
     top10HoldersPct: 19.71,
+    holdersCount: 735,
     athPrice: 0.000893,
     athFdv: 893360,
     creatorAddress: "0xd892e11287ae78d2d124677cd8e364162eabf939",
@@ -43,11 +44,12 @@ describe("Natural Language Specific Metric Queries & Question Binding", () => {
     expect(intent.requestedMetrics).toContain("VOLUME_24H");
   });
 
-  it("renderSpecificMetricsCard should render Telegram HTML with only requested bound metrics", () => {
+  it("renderSpecificMetricsCard should render Telegram HTML with specific holders count and bound metrics", () => {
     const card = renderSpecificMetricsCard(mockMetrics, ["TOP_HOLDERS", "MARKET_CAP"], "TELEGRAM");
     expect(card).toContain("<b>🔮 Lattice Quick Answer — $GATO</b>");
-    expect(card).toContain("Top 10 Holders:");
-    expect(card).toContain("19.71%");
+    expect(card).toContain("Holders:");
+    expect(card).toContain("735");
+    expect(card).toContain("Top 10: 19.71%");
     expect(card).toContain("Market Cap:");
     expect(card).toContain("$352.55K");
     expect(card).not.toContain("24h Volume:");

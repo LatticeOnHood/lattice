@@ -49,6 +49,7 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
         if (website) websiteList.push(website);
 
         const top10HoldersPct = Number(token.top10HoldersPercent || result.top10HoldersPercent) || undefined;
+        const holdersCount = Number(result.holders) || undefined;
         const athPrice = Number(token.extrema?.athPrice) || undefined;
         const athFdv = Number(token.extrema?.athFdv || token.extrema?.athCircMc) || undefined;
         const atlPrice = Number(token.extrema?.atlPrice) || undefined;
@@ -73,6 +74,7 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
           twitter: twitter || undefined,
           telegram: telegram || undefined,
           top10HoldersPct,
+          holdersCount,
           athPrice,
           athFdv,
           atlPrice,

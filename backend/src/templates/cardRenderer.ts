@@ -24,9 +24,9 @@ export function renderTelegramAuditCard(metrics: DexScreenerTokenMetrics): strin
   const priceChangeIcon = priceChange >= 0 ? "📈" : "📉";
   const priceChangeFormatted = `${priceChangeIcon} ${priceChange >= 0 ? "+" : ""}${priceChange.toFixed(2)}%`;
 
-  const top10Section = metrics.top10HoldersPct
-    ? `• <b>Top 10 Holders:</b> <code>${metrics.top10HoldersPct.toFixed(2)}%</code>\n`
-    : "";
+  const holdersSection = metrics.holdersCount
+    ? `• <b>Holders:</b> <code>${metrics.holdersCount.toLocaleString()}</code>${metrics.top10HoldersPct ? ` (Top 10: ${metrics.top10HoldersPct.toFixed(2)}%)` : ""}\n`
+    : (metrics.top10HoldersPct ? `• <b>Top 10 Holders:</b> <code>${metrics.top10HoldersPct.toFixed(2)}%</code>\n` : "");
 
   const athSection = metrics.athPrice
     ? `• <b>ATH Price:</b> <code>${formatPrice(metrics.athPrice)}</code> (${formatUsd(metrics.athFdv)})\n`
@@ -36,8 +36,8 @@ export function renderTelegramAuditCard(metrics: DexScreenerTokenMetrics): strin
     ? `• <b>Deployer:</b> <code>${metrics.creatorAddress.slice(0, 6)}...${metrics.creatorAddress.slice(-4)}</code>\n`
     : "";
 
-  const securityHeader = (top10Section || athSection || creatorSection)
-    ? `\n<b>🛡️ Security & Distribution</b>\n${top10Section}${athSection}${creatorSection}`
+  const securityHeader = (holdersSection || athSection || creatorSection)
+    ? `\n<b>🛡️ Security & Distribution</b>\n${holdersSection}${athSection}${creatorSection}`
     : "";
 
   return `<b>🔮 Lattice Audit Report — $${metrics.symbol}</b>
@@ -150,11 +150,19 @@ export function renderSpecificMetricsCard(
         );
         break;
       case "TOP_HOLDERS":
-        lines.push(
-          isTelegram
-            ? `• <b>Top 10 Holders:</b> <code>${metrics.top10HoldersPct ? `${metrics.top10HoldersPct.toFixed(2)}%` : "N/A"}</code>`
-            : `• Top 10 Holders: ${metrics.top10HoldersPct ? `${metrics.top10HoldersPct.toFixed(1)}%` : "N/A"}`
-        );
+        if (metrics.holdersCount) {
+          lines.push(
+            isTelegram
+              ? `• <b>Holders:</b> <code>${metrics.holdersCount.toLocaleString()}</code>${metrics.top10HoldersPct ? ` (Top 10: ${metrics.top10HoldersPct.toFixed(2)}%)` : ""}`
+              : `• Holders: ${metrics.holdersCount.toLocaleString()}${metrics.top10HoldersPct ? ` (Top 10: ${metrics.top10HoldersPct.toFixed(1)}%)` : ""}`
+          );
+        } else {
+          lines.push(
+            isTelegram
+              ? `• <b>Top 10 Holders:</b> <code>${metrics.top10HoldersPct ? `${metrics.top10HoldersPct.toFixed(2)}%` : "N/A"}</code>`
+              : `• Top 10 Holders: ${metrics.top10HoldersPct ? `${metrics.top10HoldersPct.toFixed(1)}%` : "N/A"}`
+          );
+        }
         break;
       case "ATH":
         lines.push(
