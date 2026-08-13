@@ -1,5 +1,5 @@
 import { pool } from "../db/index";
-import { getWalletByXUserId, getWalletByXHandle } from "../services/auth/accountBindingService";
+import { getWalletByXUserId, getWalletByXHandle, linkXAccount } from "../services/auth/accountBindingService";
 import { fetchTokenAuditData } from "../services/codex";
 import { parseIntentWithGroq } from "../services/groq";
 import {
@@ -29,6 +29,11 @@ export async function processTwitterMention(mention: TwitterIncomingMention): Pr
   let boundWallet = await getWalletByXUserId(authorXUserId);
   if (!boundWallet && authorUsername) {
     boundWallet = await getWalletByXHandle(authorUsername);
+    if (boundWallet) {
+      await linkXAccount(boundWallet, authorXUserId, authorUsername).catch((err) =>
+        console.warn("[x-bot] Failed to sync updated x_user_id:", err)
+      );
+    }
   }
   if (!boundWallet) {
     console.log(`[x-bot] Mentions ignored for unlinked sender (authorId: ${authorXUserId}, username: @${authorUsername || "unknown"})`);

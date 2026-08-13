@@ -61,6 +61,8 @@ async function fetchBotMentions(sinceId?: string, isRetry = false): Promise<any[
 
   const url = new URL(`https://api.twitter.com/2/users/${botUserId}/mentions`);
   url.searchParams.set("tweet.fields", "author_id,created_at,text");
+  url.searchParams.set("expansions", "author_id");
+  url.searchParams.set("user.fields", "username");
   url.searchParams.set("max_results", "10");
   if (sinceId) {
     url.searchParams.set("since_id", sinceId);
@@ -89,7 +91,21 @@ async function fetchBotMentions(sinceId?: string, isRetry = false): Promise<any[
   }
 
   const json = await response.json();
-  return json.data || [];
+  const tweets = json.data || [];
+  const users = json.includes?.users || [];
+  const usersMap = new Map<string, string>();
+  for (const u of users) {
+    if (u.id && u.username) {
+      usersMap.set(u.id, u.username);
+    }
+  }
+
+  return tweets.map((t: any) => ({
+    id: t.id,
+    author_id: t.author_id,
+    author_username: usersMap.get(t.author_id) || undefined,
+    text: t.text,
+  }));
 }
 
 /**
@@ -136,6 +152,7 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
     for (const tweet of sortedMentions) {
       const tweetId = tweet.id;
       const authorXUserId = tweet.author_id;
+      const authorUsername = tweet.author_username;
       const text = tweet.text;
 
       lastSeenTweetId = tweetId;
@@ -145,6 +162,7 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
       const replyText = await processTwitterMention({
         tweetId,
         authorXUserId,
+        authorUsername,
         text,
       });
 
