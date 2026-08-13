@@ -35,7 +35,7 @@
 
 | Step | Action | Description |
 | :--- | :--- | :--- |
-| `1` | **Trigger** | User tags `@latticehoodbot` on X, sends a DM to `@latticehood_bot` on Telegram, or posts a Contract Address in a group. |
+| `1` | **Trigger** | User tags `@latticehoodbot` on X, sends a DM to `@latticeonhood_bot` on Telegram, or posts a Contract Address in a group. |
 | `2` | **Extraction** | Lattice extracts the token CA and queries GMGN API for holder & transaction metrics. |
 | `3` | **Analysis** | Dev holdings, bundler cluster maps, and holder concentration are computed. |
 | `4` | **Reporting** | Formatted audit card with risk status and metrics is replied back to the user. |

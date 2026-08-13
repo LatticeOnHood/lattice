@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   ),
   title: "Lattice (LAT) — On-Chain Verification Protocol",
   description:
-    "Tag @latticehoodbot on X or @latticehood_bot on Telegram with a contract address and get a structured on-chain report in-thread: liquidity, holder concentration, market cap, contract risk signals and Promises Kept. Read-only — no wallet, no signature, no gas.",
+    "Tag @latticehoodbot on X or @latticeonhood_bot on Telegram with a contract address and get a structured on-chain report in-thread: liquidity, holder concentration, market cap, contract risk signals and Promises Kept. Read-only — no wallet, no signature, no gas.",
   icons: { icon: "/logo.png", apple: "/logo.png" },
   openGraph: {
     title: "Lattice (LAT) — On-Chain Verification Protocol",

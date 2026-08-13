@@ -89,7 +89,7 @@ export function LinkedAccountsCard({ className }: { className?: string }) {
             Recommended Next Step
           </span>
           <p className="mt-3 text-[11px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
-            Link Telegram to trigger audits from group chats and DMs with @latticehood_bot.
+            Link Telegram to trigger audits from group chats and DMs with @latticeonhood_bot.
           </p>
           <div className="mt-4 flex items-center gap-3">
             <TelegramLoginButton

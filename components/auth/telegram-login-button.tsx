@@ -3,7 +3,7 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import type { TelegramWidgetUser } from "@/lib/api";
 
-const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "") || "latticehood_bot";
+const BOT_USERNAME = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "latticeonhood_bot").replace(/^@/, "").trim();
 
 declare global {
   interface Window {

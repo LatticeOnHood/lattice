@@ -41,7 +41,7 @@ function StepFrame({
 /**
  * Enforces onboarding flow:
  * Step 1: Connect EVM Wallet
- * Step 2: Separate Platform Selection Screen (Telegram @latticehood_bot OR X @latticehoodbot)
+ * Step 2: Separate Platform Selection Screen (Telegram @latticeonhood_bot OR X @latticehoodbot)
  * Step 3: OAuth / Widget Auth & Wallet Verification Signature
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -64,7 +64,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       <StepFrame
         step="01"
         title="Connect Your Wallet"
-        body={`Lattice binds one EVM wallet to one X account (@latticehoodbot) and one Telegram account (@latticehood_bot). Connect on ${robinhoodChain.name} to begin.`}
+        body={`Lattice binds one EVM wallet to one X account (@latticehoodbot) and one Telegram account (@latticeonhood_bot). Connect on ${robinhoodChain.name} to begin.`}
       >
         <ConnectWalletButton className="w-full" />
         {!WALLETCONNECT_ENABLED && (
@@ -134,7 +134,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </span>
           </div>
           <p className="mt-2 text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
-            Bind @latticehood_bot to run instant audits in Telegram group chats and DMs.
+            Bind @latticeonhood_bot to run instant audits in Telegram group chats and DMs.
           </p>
           <div className="mt-4 flex items-center gap-3">
             {(pending as string) === "link-telegram" ? (
