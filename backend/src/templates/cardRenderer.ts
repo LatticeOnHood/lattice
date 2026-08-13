@@ -316,7 +316,7 @@ export function renderTradeQuoteCard(
 ): string {
   const side = tradeDetails?.side || (quote.fromToken.symbol === "USDG" || quote.fromToken.symbol === "ETH" ? "BUY" : "SELL");
   const actionText = side === "BUY" ? "Buy Quote" : "Sell Quote";
-  const executeUrl = `https://latticehood.app/trade?from=${quote.fromToken.symbol}&to=${quote.toToken.symbol}&amount=${quote.amountIn}`;
+
 
   const dexVer = quote.dexVersion || "V3";
 

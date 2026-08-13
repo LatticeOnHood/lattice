@@ -94,9 +94,7 @@ export function TradeConsole() {
     }
   }
 
-  useEffect(() => {
-    fetchQuote();
-  }, [fromToken.address, toToken.address, amountIn]);
+
 
   // Resolve custom contract address typed into modal search
   useEffect(() => {
