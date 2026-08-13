@@ -41,9 +41,12 @@ async function tryRefreshToken(): Promise<boolean> {
     if (refreshed.refresh_token) {
       currentRefreshToken = refreshed.refresh_token;
     }
+    // Save updated tokens to PostgreSQL so they survive server restarts
+    await saveXBotTokens(currentAccessToken, currentRefreshToken);
+
     // Invalidate cached bot user ID so it re-verifies on next call
     cachedBotUserId = null;
-    console.log("[twitter-worker] Successfully refreshed X OAuth access token.");
+    console.log("[twitter-worker] Successfully refreshed X OAuth access token and saved to DB.");
     return true;
   } catch (err: any) {
     console.error("[twitter-worker] Failed to refresh X OAuth token:", err.message);
@@ -220,7 +223,9 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
 /**
  * Starts continuous background polling worker
  */
-export function startTwitterWorker() {
+export async function startTwitterWorker() {
+  await initTokens();
+
   if (!X_BOT_ENABLED || !currentAccessToken) {
     console.log("[twitter-worker] X Bot Worker disabled or missing X_ACCESS_TOKEN.");
     return;

@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "crypto";
+import { pool } from "../../db/index";
 
 export function generatePkcePair() {
   const codeVerifier = randomBytes(32)
@@ -120,4 +121,35 @@ export async function refreshXAccessToken(params: {
   }
 
   return response.json();
+}
+
+export async function getStoredXBotTokens(): Promise<{ accessToken: string; refreshToken: string } | null> {
+  try {
+    const res = await pool.query("SELECT access_token, refresh_token FROM x_bot_tokens WHERE id = 'primary'");
+    if (res.rows.length > 0) {
+      return {
+        accessToken: res.rows[0].access_token,
+        refreshToken: res.rows[0].refresh_token,
+      };
+    }
+  } catch (err) {
+    console.warn("[oauth] Failed to read x_bot_tokens from DB:", err);
+  }
+  return null;
+}
+
+export async function saveXBotTokens(accessToken: string, refreshToken: string): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO x_bot_tokens (id, access_token, refresh_token, updated_at)
+       VALUES ('primary', $1, $2, NOW())
+       ON CONFLICT (id) DO UPDATE
+       SET access_token = EXCLUDED.access_token,
+           refresh_token = EXCLUDED.refresh_token,
+           updated_at = NOW()`,
+      [accessToken, refreshToken]
+    );
+  } catch (err) {
+    console.warn("[oauth] Failed to save x_bot_tokens to DB:", err);
+  }
 }
