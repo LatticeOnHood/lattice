@@ -232,7 +232,7 @@ Please connect your wallet and link your account at:
 <a href="https://latticehood.app/connect">https://latticehood.app/connect</a> to run token audits.`;
   }
 
-  return `⚠️ Account Not Linked: Please connect your EVM wallet and link your X account at https://latticehood.app/connect to request token audits. #Lattice`;
+  return `⚠️ Account Not Linked: Please connect your EVM wallet and link your account by clicking the link on my bio to request token audits. #Lattice`;
 }
 
 /**

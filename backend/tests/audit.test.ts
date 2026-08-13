@@ -58,6 +58,6 @@ describe("1:1 Account Binding Bot Guard Authorization", () => {
     });
 
     expect(response).toContain("Account Not Linked");
-    expect(response).toContain("https://latticehood.app/connect");
+    expect(response).toContain("link on my bio");
   });
 });
