@@ -1,6 +1,6 @@
 import { pool } from "../db/index";
 import { getWalletByXUserId } from "../services/auth/accountBindingService";
-import { fetchDexScreenerTokenData } from "../services/dexscreener";
+import { fetchTokenAuditData } from "../services/codex";
 import { parseIntentWithGroq } from "../services/groq";
 import {
   renderTwitterAuditReply,
@@ -41,9 +41,9 @@ export async function processTwitterMention(mention: TwitterIncomingMention): Pr
 
   if (intent.action === "AUDIT" && intent.tokenAddress) {
     try {
-      const metrics = await fetchDexScreenerTokenData(intent.tokenAddress);
+      const metrics = await fetchTokenAuditData(intent.tokenAddress);
       if (!metrics) {
-        return `⚠️ No DexScreener liquidity found for token ${intent.tokenAddress}. #Lattice`;
+        return `⚠️ No liquidity pool found for token ${intent.tokenAddress}. #Lattice`;
       }
 
       // Log audit query to Supabase PostgreSQL

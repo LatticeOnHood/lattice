@@ -1,6 +1,6 @@
 import { pool } from "../db/index";
 import { getWalletByTelegramUserId } from "../services/auth/accountBindingService";
-import { fetchDexScreenerTokenData } from "../services/dexscreener";
+import { fetchTokenAuditData } from "../services/codex";
 import { parseIntentWithGroq } from "../services/groq";
 import {
   renderTelegramAuditCard,
@@ -106,9 +106,9 @@ Click the link below to connect your EVM wallet and bind your Telegram account:
 
   if (intent.action === "AUDIT" && intent.tokenAddress) {
     try {
-      const metrics = await fetchDexScreenerTokenData(intent.tokenAddress);
+      const metrics = await fetchTokenAuditData(intent.tokenAddress);
       if (!metrics) {
-        return `⚠️ No trading pairs or liquidity found on DexScreener for address <code>${intent.tokenAddress}</code>.`;
+        return `⚠️ No trading pairs or liquidity found on DexScreener/Codex for address <code>${intent.tokenAddress}</code>.`;
       }
 
       // Log audit query to Supabase PostgreSQL

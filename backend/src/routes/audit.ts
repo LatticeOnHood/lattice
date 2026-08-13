@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { fetchDexScreenerTokenData, isValidEvmAddress } from "../services/dexscreener";
+import { fetchTokenAuditData } from "../services/codex";
+import { isValidEvmAddress } from "../services/dexscreener";
 import { parseIntentWithGroq } from "../services/groq";
 import { renderTelegramAuditCard, renderTwitterAuditReply } from "../templates/cardRenderer";
 import { pool } from "../db/index";
@@ -35,7 +36,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       return;
     }
 
-    const metrics = await fetchDexScreenerTokenData(targetAddress);
+    const metrics = await fetchTokenAuditData(targetAddress);
     if (!metrics) {
       res.status(444).json({
         error: `No liquidity pool or trading pairs found on DexScreener for address ${targetAddress}`,
