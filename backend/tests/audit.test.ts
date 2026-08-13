@@ -5,6 +5,7 @@ import { isValidEvmAddress } from "../src/services/dexscreener";
 import { extractEvmAddress } from "../src/services/groq";
 import { processTelegramMessage } from "../src/bots/telegramBot";
 import { processTwitterMention } from "../src/bots/twitterBot";
+import { splitTweetContent } from "../src/templates/cardRenderer";
 
 describe("EVM Address Validation & Parsing", () => {
   it("isValidEvmAddress should return true for valid 40-hex EVM addresses", () => {
@@ -20,6 +21,23 @@ describe("EVM Address Validation & Parsing", () => {
   it("extractEvmAddress should extract EVM 0x address from natural text", () => {
     const text = "Please audit token 0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168 thanks";
     expect(extractEvmAddress(text)).toBe("0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168");
+  });
+});
+
+describe("Tweet Content Splitting for X Threads", () => {
+  it("splitTweetContent should return 1 chunk if text <= 280 chars", () => {
+    const text = "Short tweet under 280 chars.";
+    const chunks = splitTweetContent(text);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]).toBe(text);
+  });
+
+  it("splitTweetContent should split long text into thread chunks with suffix", () => {
+    const longText = "Line 1: Audit report details for long token query.\n".repeat(10);
+    const chunks = splitTweetContent(longText);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks[0]).toContain("(continued audit in thread 🧵)");
+    expect(chunks[0].length).toBeLessThanOrEqual(280);
   });
 });
 

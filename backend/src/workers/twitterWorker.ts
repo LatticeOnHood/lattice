@@ -1,5 +1,6 @@
 import { processTwitterMention } from "../bots/twitterBot";
 import { refreshXAccessToken, getAuthenticatedXUser } from "../services/auth/oauth";
+import { splitTweetContent } from "../templates/cardRenderer";
 
 let currentAccessToken = process.env.X_ACCESS_TOKEN || "";
 let currentRefreshToken = process.env.X_REFRESH_TOKEN || "";
@@ -109,10 +110,10 @@ async function fetchBotMentions(sinceId?: string, isRetry = false): Promise<any[
 }
 
 /**
- * Posts a reply tweet back to Twitter API v2
+ * Posts a reply tweet back to Twitter API v2, returning created tweet ID
  */
-async function postReplyTweet(replyText: string, inReplyToTweetId: string): Promise<boolean> {
-  if (!currentAccessToken) return false;
+async function postReplyTweet(replyText: string, inReplyToTweetId: string): Promise<string | null> {
+  if (!currentAccessToken) return null;
 
   const response = await fetch("https://api.twitter.com/2/tweets", {
     method: "POST",
@@ -131,9 +132,11 @@ async function postReplyTweet(replyText: string, inReplyToTweetId: string): Prom
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
     console.error(`[twitter-worker] Failed to post reply tweet (${response.status}): ${errorText}`);
+    return null;
   }
 
-  return response.ok;
+  const json = await response.json();
+  return json.data?.id || null;
 }
 
 /**
@@ -167,7 +170,16 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
       });
 
       if (replyText) {
-        await postReplyTweet(replyText, tweetId);
+        const chunks = splitTweetContent(replyText);
+        let parentTweetId = tweetId;
+        for (const chunk of chunks) {
+          const postedId = await postReplyTweet(chunk, parentTweetId);
+          if (postedId) {
+            parentTweetId = postedId;
+          } else {
+            break;
+          }
+        }
         processedCount++;
       }
     }

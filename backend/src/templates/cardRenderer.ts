@@ -100,6 +100,34 @@ DEX: ${(metrics.dexId || "uniswap").toUpperCase()}${xHandleStr}
 }
 
 /**
+ * Splits tweet content into <=280 character chunks for X thread replies.
+ * If text > 280 chars, appends "(continued audit in thread 🧵)" to chunk 1 and replies with remaining content in thread.
+ */
+export function splitTweetContent(text: string, maxLen = 280): string[] {
+  if (text.length <= maxLen) return [text];
+
+  const threadSuffix = "\n\n(continued audit in thread 🧵)";
+  const maxChunk1Len = maxLen - threadSuffix.length;
+
+  let splitIndex = text.lastIndexOf("\n", maxChunk1Len);
+  if (splitIndex <= 0) {
+    splitIndex = text.lastIndexOf(" ", maxChunk1Len);
+  }
+  if (splitIndex <= 0) {
+    splitIndex = maxChunk1Len;
+  }
+
+  const chunk1 = text.slice(0, splitIndex).trim() + threadSuffix;
+  const remaining = text.slice(splitIndex).trim();
+
+  if (remaining.length <= maxLen) {
+    return [chunk1, remaining];
+  }
+
+  return [chunk1, ...splitTweetContent(remaining, maxLen)];
+}
+
+/**
  * Renders Targeted Specific Metrics Card for Question Binding (Telegram HTML / X Text)
  */
 export function renderSpecificMetricsCard(
