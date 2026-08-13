@@ -13,6 +13,7 @@ import { useAccount, useSignMessage } from "wagmi";
 import {
   ApiError,
   SIGN_MESSAGE,
+  bindTelegram,
   bindTelegramWidget,
   fetchLinkState,
   requestXAuthorizeUrl,
@@ -47,6 +48,8 @@ interface SessionContextValue {
   linkX: () => Promise<void>;
   /** Cross-link: bind a Telegram Login Widget payload to this wallet. */
   linkTelegram: (data: TelegramWidgetUser) => Promise<void>;
+  /** Direct Telegram account binding. */
+  linkTelegramDirect: (telegramUserId: string, telegramUsername?: string) => Promise<void>;
   /** Adopt a JWT handed back on the OAuth redirect (`/auth/callback#token=`). */
   adoptToken: (token: string) => Promise<void>;
   signOut: () => void;
@@ -213,6 +216,32 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [getProof, persist, session?.xHandle, session?.xLinked, toast]
   );
 
+  const linkTelegramDirect = useCallback(
+    async (telegramUserId: string, telegramUsername?: string) => {
+      setPending("link-telegram");
+      try {
+        const proof = await getProof();
+        const next = await bindTelegram(proof, { telegramUserId, telegramUsername });
+        persist({
+          ...next,
+          xLinked: session?.xLinked ?? next.xLinked,
+          xHandle: session?.xHandle ?? next.xHandle,
+        });
+        toast.success({
+          title: "Telegram linked",
+          description: next.telegramUsername
+            ? `@${next.telegramUsername} is now bound to your wallet.`
+            : "Your Telegram account is now bound to your wallet.",
+        });
+      } catch (err) {
+        toast.fromError(err);
+      } finally {
+        setPending(null);
+      }
+    },
+    [getProof, persist, session?.xHandle, session?.xLinked, toast]
+  );
+
   const adoptToken = useCallback(
     async (token: string) => {
       const state = await fetchLinkState(token);
@@ -263,11 +292,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       signIn,
       linkX,
       linkTelegram,
+      linkTelegramDirect,
       adoptToken,
       signOut,
       refresh,
     }),
-    [status, session, address, pending, signIn, linkX, linkTelegram, adoptToken, signOut, refresh]
+    [status, session, address, pending, signIn, linkX, linkTelegram, linkTelegramDirect, adoptToken, signOut, refresh]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

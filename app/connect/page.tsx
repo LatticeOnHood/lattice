@@ -2,7 +2,8 @@
 
 import React, { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { Loader2, Send } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { useAccount } from "wagmi";
 import { ACCENT, FONT_STACK } from "@/lib/brand";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -51,6 +52,9 @@ function ConnectContent() {
   const tgUserId = searchParams.get("tg_user_id");
   const username = searchParams.get("username");
 
+  const { isConnected, address } = useAccount();
+  const { linkTelegramDirect, pending } = useSession();
+
   const isTelegramFlow = platform === "telegram" || Boolean(tgUserId);
 
   return (
@@ -72,18 +76,40 @@ function ConnectContent() {
           <span style={{ color: ACCENT }}>@latticehoodbot on X or @latticeonhood_bot on Telegram</span> to perform instant on-chain token audits.
         </p>
 
-        {isTelegramFlow && (
-          <div className="mt-4 max-w-lg border border-sky-200 bg-sky-50 p-4 rounded-md flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons8-telegram-144.png" alt="Telegram" className="h-5 w-5 object-contain" />
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-sky-900">
-                Telegram User Detected {username ? `@${username}` : ""}
-              </span>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-700 mt-0.5">
-                Connect your EVM wallet below to complete your 1:1 Telegram account binding.
-              </p>
+        {isTelegramFlow && tgUserId && (
+          <div className="mt-6 max-w-lg border border-sky-200 bg-sky-50 p-5 rounded-md">
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons8-telegram-144.png" alt="Telegram" className="h-5 w-5 object-contain" />
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-900">
+                  Telegram Account Detected: {username ? `@${username}` : tgUserId}
+                </span>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-700 mt-0.5">
+                  {isConnected
+                    ? "Wallet connected! Click below to sign & complete 1:1 Telegram account binding."
+                    : "Connect your wallet below to complete 1:1 Telegram account binding."}
+                </p>
+              </div>
             </div>
+
+            {isConnected && (
+              <button
+                type="button"
+                onClick={() => linkTelegramDirect(tgUserId, username || undefined)}
+                disabled={pending === "link-telegram"}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+                style={{ backgroundColor: "#229ED9" }}
+              >
+                {pending === "link-telegram" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src="/icons8-telegram-144.png" alt="Telegram" className="h-4 w-4 object-contain invert" />
+                )}
+                Confirm & Bind Telegram {username ? `@${username}` : ""} to Wallet
+              </button>
+            )}
           </div>
         )}
       </header>
