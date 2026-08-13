@@ -23,17 +23,17 @@ function StepFrame({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-lg border border-black/10 bg-white p-8 md:p-10">
+    <div className="mx-auto w-full max-w-lg border border-black/10 bg-white p-6 md:p-8">
       <span className="text-sm font-semibold tracking-widest" style={{ color: ACCENT }}>
         {step}
       </span>
-      <h2 className="mt-4 text-xl font-semibold uppercase tracking-widest text-black md:text-2xl">
+      <h2 className="mt-3 text-lg font-semibold uppercase tracking-widest text-black md:text-xl">
         {title}
       </h2>
-      <p className="mt-3 text-[11px] font-semibold uppercase leading-relaxed tracking-widest text-black/60 sm:text-xs">
+      <p className="mt-2.5 text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/60 sm:text-[11px]">
         {body}
       </p>
-      <div className="mt-8">{children}</div>
+      <div className="mt-6">{children}</div>
     </div>
   );
 }
@@ -105,15 +105,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         {pending === "signin" ? "Check Your Wallet" : "Sign Verification Message"}
       </button>
 
-      <div className="mt-8 border-t border-black/10 pt-6">
+      <div className="mt-6 border-t border-black/10 pt-5">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
           Step 03 — Or Link Telegram First
         </span>
-        <p className="mt-3 text-[11px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
+        <p className="mt-2.5 text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
           Signing above sends you to X. To bind Telegram to this wallet instead,
           use the widget — you will be asked to sign the same message.
         </p>
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-3.5 flex items-center gap-3">
           <TelegramLoginButton onAuth={linkTelegram} disabled={pending === "link-telegram"} />
           {pending === "link-telegram" && (
             <Loader2 className="h-4 w-4 animate-spin" style={{ color: ACCENT }} />
@@ -121,7 +121,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <div className="mt-8 flex justify-center">
+      <div className="mt-6 flex justify-center">
         <ConnectWalletButton size="sm" />
       </div>
     </StepFrame>

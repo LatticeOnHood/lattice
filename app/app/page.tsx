@@ -50,19 +50,19 @@ export default function AppPage() {
     <div className="min-h-screen bg-white" style={{ fontFamily: FONT_STACK }}>
       <SiteNav />
 
-      <header className="px-5 pb-12 pt-16 sm:px-8 md:px-12 md:pb-16 md:pt-24">
+      {/* Kept deliberately compact: this header sits above the onboarding card,
+          which should be reachable without scrolling on a laptop viewport. */}
+      <header className="px-5 pb-6 pt-8 sm:px-8 md:px-12 md:pb-8 md:pt-12">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
           The App
         </span>
         <h1
-          className="mt-4 uppercase text-black"
-          style={{ fontSize: "clamp(2rem, 8vw, 6rem)", lineHeight: 0.9, fontWeight: 600 }}
+          className="mt-2 uppercase text-black"
+          style={{ fontSize: "clamp(1.5rem, 4vw, 2.5rem)", lineHeight: 1, fontWeight: 600 }}
         >
-          Verify
-          <br />
-          Before You Buy
+          Verify Before You Buy
         </h1>
-        <p className="mt-6 max-w-xl text-[11px] font-semibold uppercase leading-relaxed tracking-widest text-black/60 sm:text-xs">
+        <p className="mt-3 max-w-xl text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/60 sm:text-[11px]">
           Paste a Robinhood Chain contract address for a structured on-chain
           report. Your wallet binding is what lets{" "}
           <span style={{ color: ACCENT }}>@LatticeBot</span> answer for you in X
@@ -70,7 +70,7 @@ export default function AppPage() {
         </p>
       </header>
 
-      <main className="px-5 pb-24 sm:px-8 md:px-12">
+      <main className="px-5 pb-16 sm:px-8 md:px-12">
         <AuthGate>
           <Console />
         </AuthGate>
