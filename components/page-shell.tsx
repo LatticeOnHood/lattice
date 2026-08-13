@@ -26,7 +26,7 @@ export function PageShell({
 
       <header className="px-5 pb-16 pt-16 sm:px-8 md:px-12 md:pb-24 md:pt-24">
         <Reveal>
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
             {eyebrow}
           </span>
         </Reveal>

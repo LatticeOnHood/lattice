@@ -18,7 +18,7 @@ export function SiteFooter() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
             Pages
           </span>
           <Link
@@ -36,7 +36,7 @@ export function SiteFooter() {
         </div>
 
         <div className="flex max-w-xs flex-col gap-3">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
             Disclaimer
           </span>
           <p className="text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
@@ -47,7 +47,7 @@ export function SiteFooter() {
       </div>
 
       <div className="mt-10 flex flex-col gap-2 border-t border-black/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
           © {new Date().getFullYear()} Lattice
         </span>
         <Link

@@ -28,7 +28,7 @@ const price = (value: number) =>
 function Metric({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
     <div className="border border-black/10 bg-white p-5">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
         {label}
       </span>
       <p
@@ -76,14 +76,14 @@ export function AuditConsole() {
     <div className="space-y-8">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
         <div className="flex flex-1 items-center gap-3 border border-black/15 bg-white px-4">
-          <Search className="h-4 w-4 shrink-0 text-black/30" />
+          <Search className="h-4 w-4 shrink-0 text-black/45" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="0x… contract address, or ask in plain English"
             spellCheck={false}
             autoComplete="off"
-            className="w-full bg-transparent py-4 font-mono text-xs text-black outline-none placeholder:font-sans placeholder:uppercase placeholder:tracking-widest placeholder:text-black/30 sm:text-sm"
+            className="w-full bg-transparent py-4 font-mono text-xs text-black outline-none placeholder:font-sans placeholder:uppercase placeholder:tracking-widest placeholder:text-black/55 sm:text-sm"
           />
         </div>
         <button
@@ -101,7 +101,7 @@ export function AuditConsole() {
         <div className="space-y-px">
           <div className="flex flex-wrap items-end justify-between gap-4 border border-black/10 bg-white p-6 md:p-8">
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
                 {result.dexId}
               </span>
               <h3
@@ -141,7 +141,7 @@ export function AuditConsole() {
           </div>
 
           <div className="border border-black/10 bg-white p-6 md:p-8">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
               Contract
             </span>
             <p className="mt-2 break-all font-mono text-xs text-black/70">{result.address}</p>
@@ -182,7 +182,7 @@ export function AuditConsole() {
               </div>
             )}
 
-            <p className="mt-6 text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/40">
+            <p className="mt-6 text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/55">
               Read-only. Market data via DexScreener. Not financial advice — always DYOR.
             </p>
           </div>

@@ -204,7 +204,7 @@ export default function Home() {
 
         <div className="relative z-10">
           <Reveal>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
               How It Works
             </span>
           </Reveal>
@@ -249,7 +249,7 @@ export default function Home() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <Reveal>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
                 The Report
               </span>
             </Reveal>
@@ -310,7 +310,7 @@ export default function Home() {
         <div className="flex flex-col items-start gap-12 md:flex-row md:items-center md:justify-between">
           <div className="max-w-xl">
             <Reveal>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
                 The Differentiator
               </span>
             </Reveal>
@@ -373,7 +373,7 @@ export default function Home() {
                 href={page.href}
                 className="group flex h-full flex-col justify-between gap-10 p-8 transition-colors hover:bg-black/[0.03] md:p-12"
               >
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
                   Read
                 </span>
                 <div>

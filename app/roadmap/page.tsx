@@ -94,7 +94,7 @@ export default function RoadmapPage() {
                     {phase.n}
                   </span>
                   <span
-                    className="text-[10px] font-semibold uppercase tracking-widest text-black/40"
+                    className="text-[10px] font-semibold uppercase tracking-widest text-black/55"
                     style={
                       phase.status === "In Progress" ? { color: ACCENT } : undefined
                     }

@@ -65,7 +65,7 @@ export function TelegramLoginButton({
 
   if (!BOT_USERNAME) {
     return (
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
         Telegram linking unavailable — NEXT_PUBLIC_TELEGRAM_BOT_USERNAME is not set.
       </p>
     );
@@ -73,7 +73,7 @@ export function TelegramLoginButton({
 
   if (failed) {
     return (
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
         Telegram widget failed to load. Disable your blocker and retry.
       </p>
     );

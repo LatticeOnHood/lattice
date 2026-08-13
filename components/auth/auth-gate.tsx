@@ -67,7 +67,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       >
         <ConnectWalletButton className="w-full" />
         {!WALLETCONNECT_ENABLED && (
-          <p className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-black/40">
+          <p className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-black/55">
             WalletConnect is disabled — set NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID to
             offer Robinhood Wallet and other mobile wallets.
           </p>
@@ -86,7 +86,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       body="Sign a plain-text message to prove you control this wallet. Free, off-chain, no transaction and no token approval."
     >
       {wrongNetwork && (
-        <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-black/40">
+        <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-black/55">
           Connected to {chain?.name}. Signing works on any network, but audits
           target {robinhoodChain.name}.
         </p>
@@ -106,7 +106,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       </button>
 
       <div className="mt-6 border-t border-black/10 pt-5">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
           Step 03 — Or Link Telegram First
         </span>
         <p className="mt-2.5 text-[10px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">

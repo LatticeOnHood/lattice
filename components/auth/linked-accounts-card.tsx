@@ -27,7 +27,7 @@ function Row({
       </span>
       <span
         className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest sm:text-xs"
-        style={{ color: linked ? ACCENT : "rgba(0,0,0,0.35)" }}
+        style={{ color: linked ? ACCENT : "rgba(0,0,0,0.55)" }}
       >
         {linked && <Check className="h-3.5 w-3.5" />}
         {value}
@@ -50,7 +50,7 @@ export function LinkedAccountsCard({ className }: { className?: string }) {
   return (
     <div className={cn("space-y-4", className)}>
       <div className="space-y-2">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
           Bound Wallet
         </span>
         <a

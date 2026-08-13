@@ -26,7 +26,7 @@ function Console() {
       </div>
 
       <aside className="space-y-6 lg:border-l lg:border-black/10 lg:pl-10">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
           Your Bindings
         </span>
         <LinkedAccountsCard />
@@ -35,7 +35,7 @@ function Console() {
           <button
             type="button"
             onClick={signOut}
-            className="self-start text-[10px] font-semibold uppercase tracking-widest text-black/40 hover:text-black"
+            className="self-start text-[10px] font-semibold uppercase tracking-widest text-black/55 hover:text-black"
           >
             Sign Out
           </button>
@@ -53,7 +53,7 @@ export default function AppPage() {
       {/* Kept deliberately compact: this header sits above the onboarding card,
           which should be reachable without scrolling on a laptop viewport. */}
       <header className="px-5 pb-6 pt-8 sm:px-8 md:px-12 md:pb-8 md:pt-12">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/40">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-black/55">
           The App
         </span>
         <h1
