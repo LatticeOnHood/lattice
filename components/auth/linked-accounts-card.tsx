@@ -5,7 +5,6 @@ import { Check, Loader2 } from "lucide-react";
 import { ACCENT } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/components/auth/session-provider";
-import { TelegramLoginButton } from "@/components/auth/telegram-login-button";
 import { explorerAddressUrl } from "@/lib/chains";
 
 function Row({
@@ -91,15 +90,17 @@ export function LinkedAccountsCard({ className }: { className?: string }) {
           <p className="mt-3 text-[11px] font-semibold uppercase leading-relaxed tracking-widest text-black/60">
             Link Telegram to trigger audits from group chats and DMs with @latticeonhood_bot.
           </p>
-          <div className="mt-4 flex items-center gap-3">
-            <TelegramLoginButton
-              onAuth={linkTelegram}
-              disabled={pending === "link-telegram"}
-            />
-            {pending === "link-telegram" && (
-              <Loader2 className="h-4 w-4 animate-spin" style={{ color: ACCENT }} />
-            )}
-          </div>
+          <a
+            href={`https://t.me/latticeonhood_bot?start=link_${walletAddress}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-[11px] font-semibold uppercase tracking-widest text-white transition-opacity hover:opacity-80 sm:text-xs"
+            style={{ backgroundColor: "#229ED9" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons8-telegram-144.png" alt="Telegram" className="h-4 w-4 object-contain invert" />
+            Link Telegram Account
+          </a>
         </div>
       )}
 

@@ -1,5 +1,5 @@
 import { pool } from "../db/index";
-import { getWalletByXUserId } from "../services/auth/accountBindingService";
+import { getWalletByXUserId, getWalletByXHandle } from "../services/auth/accountBindingService";
 import { fetchTokenAuditData } from "../services/codex";
 import { parseIntentWithGroq } from "../services/groq";
 import {
@@ -21,10 +21,13 @@ export interface TwitterIncomingMention {
  * Processes an incoming X mention with 1:1 wallet binding verification
  */
 export async function processTwitterMention(mention: TwitterIncomingMention): Promise<string> {
-  const { authorXUserId, text } = mention;
+  const { authorXUserId, authorUsername, text } = mention;
 
   // 1. Enforce 1:1 Wallet Binding authorization check
-  const boundWallet = await getWalletByXUserId(authorXUserId);
+  let boundWallet = await getWalletByXUserId(authorXUserId);
+  if (!boundWallet && authorUsername) {
+    boundWallet = await getWalletByXHandle(authorUsername);
+  }
   if (!boundWallet) {
     return renderUnlinkedAccountNotice("X");
   }
