@@ -14,6 +14,7 @@ import {
   buildXAuthorizeUrl,
   exchangeCodeForXToken,
   getAuthenticatedXUser,
+  saveXBotTokens,
 } from "../services/auth/oauth";
 import {
   storePendingAuthState,
@@ -238,6 +239,14 @@ router.get("/x/callback", async (req: Request, res: Response, next: NextFunction
     });
 
     const xUser = await getAuthenticatedXUser(tokenResp.access_token);
+
+    if (tokenResp.access_token && tokenResp.refresh_token) {
+      const lower = xUser.username.toLowerCase();
+      if (lower.includes("bot") || lower.includes("lattice")) {
+        await saveXBotTokens(tokenResp.access_token, tokenResp.refresh_token);
+        console.log(`[auth] Saved X Bot tokens for @${xUser.username} to DB`);
+      }
+    }
 
     // Bind X account to wallet (1:1 constraint)
     await linkXAccount(pending.walletAddress, xUser.id, xUser.username);
