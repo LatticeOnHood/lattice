@@ -1,11 +1,15 @@
 import { processTwitterMention } from "../bots/twitterBot";
 import { getAuthenticatedXUser } from "../services/auth/oauth";
 import { getValidBotAccessToken } from "../services/auth/xBotTokenManager";
+import { getCursor, setCursor } from "../services/x/xBotCursor";
 import { splitTweetContent } from "../templates/cardRenderer";
 
 const X_BOT_ENABLED = process.env.X_BOT_ENABLED === "true";
-export const POLL_INTERVAL_MS = 60000; // 60 seconds (strictly fits Twitter API 15 req / 15 min limit)
+// 30s matches TagioPay. At 15 req/15-min limit, 30s = 30 calls/15min — well within quota.
+export const POLL_INTERVAL_MS = 30000;
 
+// In-memory cache of the cursor — loaded from DB on startup, saved to DB after every batch.
+// This means server restarts never re-process old mentions (TagioPay botCursor pattern).
 let lastSeenTweetId: string | null = null;
 let cachedBotUserId: string | null = null;
 let isPolling = false;
@@ -142,7 +146,7 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
 
     let processedCount = 0;
 
-    // Process mentions from oldest to newest
+    // X returns newest-first; process oldest-first so cursor advances correctly.
     const sortedMentions = mentions.reverse();
 
     for (const tweet of sortedMentions) {
@@ -150,8 +154,6 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
       const authorXUserId = tweet.author_id;
       const authorUsername = tweet.author_username;
       const text = tweet.text;
-
-      lastSeenTweetId = tweetId;
 
       if (!authorXUserId || !text) continue;
 
@@ -177,6 +179,14 @@ export async function pollTwitterMentionsOnce(): Promise<number> {
       }
     }
 
+    // Advance cursor to the newest tweet processed — persisted to DB so restarts
+    // don't re-process old mentions (TagioPay botCursor pattern).
+    const lastId = sortedMentions[sortedMentions.length - 1]?.id;
+    if (lastId) {
+      lastSeenTweetId = lastId;
+      await setCursor("mentions", lastId);
+    }
+
     return processedCount;
   } catch (err) {
     console.error("[twitter-worker] Error in polling cycle:", err);
@@ -195,6 +205,10 @@ export async function startTwitterWorker() {
 
   if (isPolling) return;
   isPolling = true;
+
+  // Restore cursor from DB so we never re-process tweets from before this boot.
+  lastSeenTweetId = await getCursor("mentions");
+  console.log(`[twitter-worker] Cursor restored from DB: ${lastSeenTweetId ?? "(none — first boot)"}`);
 
   // Eagerly resolve bot user ID on startup
   await getBotUserId();
