@@ -88,6 +88,7 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
           devHoldingsPct,
           devBuys,
           devSells,
+          dataSource: "codex.io",
         };
       }
     } catch (err) {
