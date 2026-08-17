@@ -5,6 +5,7 @@ import authRouter from "./routes/auth";
 import auditRouter from "./routes/audit";
 import telegramWebhookRouter from "./routes/telegramWebhook";
 import swapRouter from "./routes/swap";
+import verifyRouter from "./routes/verify";
 
 export const app = express();
 
@@ -27,3 +28,4 @@ app.use("/auth", authRouter);
 app.use("/api/audit", auditRouter);
 app.use("/api/webhook/telegram", telegramWebhookRouter);
 app.use("/api/swap", swapRouter);
+app.use("/api/v1", verifyRouter);

@@ -26,6 +26,8 @@ export interface DexScreenerTokenMetrics {
   devHoldingsPct?: number;
   devBuys?: number;
   devSells?: number;
+  /** Which indexer actually answered — carried into the agent report's provenance. */
+  dataSource?: "codex.io" | "dexscreener";
 }
 
 const EVM_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -107,6 +109,7 @@ export async function fetchDexScreenerTokenData(address: string): Promise<DexScr
     websites: websiteLinks.map((w: any) => w.url),
     twitter: twitterObj?.url,
     telegram: telegramObj?.url,
+    dataSource: "dexscreener",
   };
 
   // Cache result
