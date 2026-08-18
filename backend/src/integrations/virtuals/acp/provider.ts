@@ -15,6 +15,7 @@ import {
   AssetToken,
   JobSession,
   PrivyAlchemyEvmProviderAdapter,
+  getEvmChainByChainId,
   type JobRoomEntry,
 } from "@virtuals-protocol/acp-node-v2";
 import type { Address } from "viem";
@@ -177,8 +178,29 @@ export async function startAcpProvider(): Promise<AcpAgent | null> {
   status.chainId = config.chainId;
   status.walletAddress = config.walletAddress;
 
+  /**
+   * The adapter must be told which chain to run on.
+   *
+   * Omitting `chains` defaults it to EVM_MAINNET_CHAINS — [Base 8453,
+   * Robinhood 4663] — and authenticates on `chains[0]`, i.e. Base. That would
+   * silently put the provider on Base mainnet, which is not what we chose, and
+   * would register the agent against chain 8453 rather than 4663.
+   *
+   * Passing a single chain also means the `chains` array on the registry record
+   * fills with the chain we actually intend.
+   */
+  const chain = getEvmChainByChainId(config.chainId);
+
+  if (!chain) {
+    status.connected = false;
+    status.lastError = `chain ${config.chainId} is not an ACP-supported EVM chain`;
+    console.error(`[acp] ${status.lastError}. Provider not started.`);
+    return null;
+  }
+
   try {
     const evmProvider = await PrivyAlchemyEvmProviderAdapter.create({
+      chains: [chain],
       walletId: config.walletId,
       walletAddress: config.walletAddress,
       signerPrivateKey: config.signerPrivateKey,
