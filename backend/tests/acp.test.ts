@@ -5,6 +5,7 @@ import { handleVerifyTokenJob, parseRequirement } from "../src/integrations/virt
 import { DELIVERABLE_FIELDS, REQUIREMENT_FIELDS } from "../src/integrations/virtuals/acp/offering";
 import { executeVerifyToken } from "../src/integrations/virtuals/game/verifyToken";
 import { DEFAULT_ACP_CHAIN_ID, readAcpConfig } from "../src/integrations/virtuals/acp/provider";
+import { STRINGIFIED_FIELDS, toAcpDeliverable } from "../src/integrations/virtuals/acp/deliverable";
 
 const ADDRESS = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168";
 const AT = "2026-08-16T12:00:00.000Z";
@@ -127,13 +128,60 @@ describe("readAcpConfig — the provider stays off unless fully configured", () 
     }
   });
 
-  it("defaults to Robinhood Chain Testnet, the chain the reports are about", () => {
+  it("defaults to Robinhood mainnet 4663, the chain the agent is registered on", () => {
+    // The agent exists on api.acp.virtuals.io and not on api-dev, so 46630
+    // would point the provider at a server where it does not exist.
     expect(readAcpConfig(full)?.chainId).toBe(DEFAULT_ACP_CHAIN_ID);
-    expect(DEFAULT_ACP_CHAIN_ID).toBe(46630);
+    expect(DEFAULT_ACP_CHAIN_ID).toBe(4663);
   });
 
   it("honours an explicit chain override", () => {
     expect(readAcpConfig({ ...full, ACP_CHAIN_ID: "84532" })?.chainId).toBe(84532);
+  });
+});
+
+describe("toAcpDeliverable — matches the registered offering schema", () => {
+  const report = buildVerificationReport(metrics(), { generatedAt: AT });
+  const wire = toAcpDeliverable(report);
+
+  it("sends every field the offering declares required", () => {
+    for (const key of ["schemaVersion", "address", "chain", "generatedAt", "checks", "sources", "disclaimer"]) {
+      expect(wire).toHaveProperty(key);
+    }
+  });
+
+  it("stringifies exactly the fields the offering types as string", () => {
+    for (const key of STRINGIFIED_FIELDS) {
+      expect(typeof wire[key]).toBe("string");
+    }
+  });
+
+  it("leaves genuinely scalar fields as plain strings, not double-encoded", () => {
+    expect(wire.schemaVersion).toBe("1.0.0");
+    expect(wire.address).toBe(report.address);
+    expect(wire.generatedAt).toBe(AT);
+    expect(wire.disclaimer).toBe(report.disclaimer);
+  });
+
+  it("round-trips without losing anything from the report", () => {
+    expect(JSON.parse(wire.chain)).toEqual(report.chain);
+    expect(JSON.parse(wire.token)).toEqual(report.token);
+    expect(JSON.parse(wire.sources)).toEqual(report.sources);
+
+    const checks = JSON.parse(wire.checks);
+    expect(Object.keys(checks)).toEqual(Object.keys(report.checks));
+    expect(checks.honeypot).toEqual({
+      available: false,
+      reason: "not_implemented",
+      plannedPhase: "01",
+      note: "Simulated buy-then-sell test is roadmap phase 01.",
+    });
+  });
+
+  it("survives a null token without emitting the string \"undefined\"", () => {
+    const wireNull = toAcpDeliverable({ ...report, token: null });
+    expect(wireNull.token).toBe("null");
+    expect(JSON.parse(wireNull.token)).toBeNull();
   });
 });
 

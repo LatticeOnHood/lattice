@@ -4,6 +4,7 @@ import { isValidEvmAddress } from "../services/dexscreener";
 import { buildVerificationReport } from "../integrations/virtuals/buildReport";
 import { VERIFICATION_REPORT_JSON_SCHEMA } from "../integrations/virtuals/jsonSchema";
 import { REPORT_SCHEMA_VERSION } from "../integrations/virtuals/reportSchema";
+import { getAcpStatus } from "../integrations/virtuals/acp/provider";
 
 const router = Router();
 
@@ -13,6 +14,16 @@ const router = Router();
  */
 router.get("/schema", (_req: Request, res: Response) => {
   res.status(200).json(VERIFICATION_REPORT_JSON_SCHEMA);
+});
+
+/**
+ * GET /api/v1/acp/status — whether the ACP provider actually connected.
+ *
+ * Carries no credentials. Exists so "never enabled" and "crashed on startup"
+ * are distinguishable without server log access.
+ */
+router.get("/acp/status", (_req: Request, res: Response) => {
+  res.status(200).json(getAcpStatus());
 });
 
 /**

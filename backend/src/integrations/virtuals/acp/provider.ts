@@ -19,6 +19,7 @@ import {
 } from "@virtuals-protocol/acp-node-v2";
 import type { Address } from "viem";
 import { handleVerifyTokenJob } from "./handler";
+import { toAcpDeliverable } from "./deliverable";
 import { OFFERING_NAME, OFFERING_PRICE_USD } from "./offering";
 
 export interface AcpProviderConfig {
@@ -29,8 +30,13 @@ export interface AcpProviderConfig {
   chainId: number;
 }
 
-/** Robinhood Chain Testnet. ACP contracts are deployed here — see SUPPORTED_CHAINS. */
-export const DEFAULT_ACP_CHAIN_ID = 46630;
+/**
+ * Robinhood Chain mainnet. ACP contracts are deployed here (0x238E541B..., the
+ * same address as Base 8453) and this is the chain the agent is registered on:
+ * api.acp.virtuals.io lists it, api-dev.acp.virtuals.io does not. Pointing at
+ * 46630 talks to the testnet server where the agent does not exist.
+ */
+export const DEFAULT_ACP_CHAIN_ID = 4663;
 
 export function readAcpConfig(env: NodeJS.ProcessEnv = process.env): AcpProviderConfig | null {
   if (env.ACP_ENABLED !== "true") return null;
@@ -109,7 +115,7 @@ export async function handleEntry(session: JobSession, entry: JobRoomEntry): Pro
         return;
       }
 
-      await session.submit(JSON.stringify(outcome.deliverable));
+      await session.submit(JSON.stringify(toAcpDeliverable(outcome.deliverable)));
       console.log(
         `[acp] job ${session.jobId}: delivered report for ${outcome.deliverable.address}`
       );
@@ -121,15 +127,55 @@ export async function handleEntry(session: JobSession, entry: JobRoomEntry): Pro
   }
 }
 
+/**
+ * Observable state for `GET /api/v1/acp/status`.
+ *
+ * Without Render log access there is no way to tell "ACP_ENABLED was never set"
+ * apart from "the provider crashed on startup" — both look identical from
+ * outside. This makes the difference queryable. Deliberately carries no
+ * credentials: the wallet address is public on-chain data, the wallet id and
+ * signer key are never exposed.
+ */
+export interface AcpStatus {
+  enabled: boolean;
+  connected: boolean;
+  chainId: number | null;
+  walletAddress: string | null;
+  offering: { name: string; priceUsd: number };
+  startedAt: string | null;
+  lastError: string | null;
+}
+
+const status: AcpStatus = {
+  enabled: false,
+  connected: false,
+  chainId: null,
+  walletAddress: null,
+  offering: { name: OFFERING_NAME, priceUsd: OFFERING_PRICE_USD },
+  startedAt: null,
+  lastError: null,
+};
+
+export function getAcpStatus(): AcpStatus {
+  return { ...status, offering: { ...status.offering } };
+}
+
 let agent: AcpAgent | null = null;
 
 export async function startAcpProvider(): Promise<AcpAgent | null> {
   const config = readAcpConfig();
 
+  status.enabled = process.env.ACP_ENABLED === "true";
+
   if (!config) {
+    status.connected = false;
+    status.lastError = status.enabled ? "enabled but credentials incomplete" : null;
     console.log("[acp] Provider disabled (set ACP_ENABLED=true to enable).");
     return null;
   }
+
+  status.chainId = config.chainId;
+  status.walletAddress = config.walletAddress;
 
   try {
     const evmProvider = await PrivyAlchemyEvmProviderAdapter.create({
@@ -143,6 +189,9 @@ export async function startAcpProvider(): Promise<AcpAgent | null> {
     agent.on("entry", handleEntry);
 
     await agent.start(() => {
+      status.connected = true;
+      status.startedAt = new Date().toISOString();
+      status.lastError = null;
       console.log(
         `[acp] Provider listening as ${config.walletAddress} on chain ${config.chainId} — offering "${OFFERING_NAME}" at $${OFFERING_PRICE_USD}`
       );
@@ -151,6 +200,8 @@ export async function startAcpProvider(): Promise<AcpAgent | null> {
     return agent;
   } catch (err: any) {
     // Never let ACP take the API down with it.
+    status.connected = false;
+    status.lastError = String(err?.message || err).slice(0, 200);
     console.error("[acp] Failed to start provider:", err?.message || err);
     return null;
   }
@@ -160,5 +211,6 @@ export async function stopAcpProvider(): Promise<void> {
   if (agent) {
     await agent.stop();
     agent = null;
+    status.connected = false;
   }
 }

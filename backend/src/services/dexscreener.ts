@@ -31,7 +31,14 @@ export interface DexScreenerTokenMetrics {
 }
 
 const EVM_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-const CACHE_TTL_MS = 15000; // 15 seconds cache
+/**
+ * Per-address report cache.
+ *
+ * Two minutes, matching the whitepaper's stated 2-5 minute window: a trending
+ * token gets re-tagged constantly, and every re-tag was previously costing a
+ * fresh upstream call once 15 seconds had elapsed.
+ */
+const CACHE_TTL_MS = 120_000;
 
 interface CacheEntry {
   timestamp: number;
