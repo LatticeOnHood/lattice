@@ -29,6 +29,20 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
         const priceUsd = Number(result.priceUSD) || 0;
         const totalSupply = Number(token.info?.totalSupply || token.info?.circulatingSupply) || 1_000_000_000;
         const marketCap = Number(result.marketCap) || (priceUsd * totalSupply) || 0;
+
+        /**
+         * FDV is price against *total* supply, which only differs from market cap
+         * when the indexer actually reports a total supply distinct from the
+         * circulating figure. Previously this returned `marketCap` verbatim, so
+         * the dashboard rendered two tiles with identical values under different
+         * labels. When total supply is unknown the two genuinely cannot be
+         * separated, and FDV stays equal to market cap — the UI says so.
+         */
+        const declaredTotalSupply = Number(token.info?.totalSupply);
+        const fdv =
+          Number.isFinite(declaredTotalSupply) && declaredTotalSupply > 0 && priceUsd > 0
+            ? priceUsd * declaredTotalSupply
+            : marketCap;
         const liquidityUsd = Number(result.liquidity) || 0;
         const volume24h = Number(result.volume24) || 0;
         
@@ -68,7 +82,7 @@ export async function fetchTokenAuditData(address: string): Promise<DexScreenerT
           priceUsd,
           priceNative: priceUsd > 0 ? `$${priceUsd.toFixed(6)}` : "0",
           marketCap,
-          fdv: marketCap,
+          fdv,
           liquidityUsd,
           volume24h,
           priceChange24h,

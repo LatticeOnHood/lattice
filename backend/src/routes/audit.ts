@@ -3,6 +3,7 @@ import { fetchTokenAuditData } from "../services/codex";
 import { isValidEvmAddress } from "../services/dexscreener";
 import { parseIntentWithGroq, RequestedMetric } from "../services/groq";
 import { renderTelegramAuditCard, renderTwitterAuditReply, renderSpecificMetricsCard } from "../templates/cardRenderer";
+import { buildVerificationReport } from "../integrations/virtuals/buildReport";
 import { pool } from "../db/index";
 
 const router = Router();
@@ -70,6 +71,10 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       chain: "robinhood",
       metrics,
+      // Additive: the same versioned report `/api/v1/verify/:address` serves.
+      // Existing consumers read `metrics` and `renderedCards` and are unaffected;
+      // the dashboard uses this to distinguish "no data" from "check not shipped".
+      report: buildVerificationReport(metrics),
       renderedCards: {
         telegramHtml: isSpecific
           ? renderSpecificMetricsCard(metrics, requestedMetrics, "TELEGRAM")
