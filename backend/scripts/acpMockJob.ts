@@ -16,6 +16,7 @@ import {
   OFFERING_SLA_MINUTES,
 } from "../src/integrations/virtuals/acp/offering";
 import { evaluateReport } from "../src/integrations/virtuals/evaluator";
+import { DEFAULT_ACP_CHAIN_ID } from "../src/integrations/virtuals/acp/provider";
 import { CheckId } from "../src/integrations/virtuals/reportSchema";
 
 const DEFAULT_ADDRESS = "0x5fc5360d0400a0fd4f2af552add042d716f1d168";
@@ -31,7 +32,7 @@ async function main() {
   const contractAddress = process.argv[2] || DEFAULT_ADDRESS;
 
   console.log(`\nACP mock job — offering "${OFFERING_NAME}"`);
-  console.log(`  price $${OFFERING_PRICE_USD.toFixed(2)} · SLA ${OFFERING_SLA_MINUTES}min · settlement base-sepolia (simulated)\n`);
+  console.log(`  price $${OFFERING_PRICE_USD.toFixed(2)} · SLA ${OFFERING_SLA_MINUTES}min · settlement Robinhood Chain ${DEFAULT_ACP_CHAIN_ID} mainnet (simulated)\n`);
 
   const startedAt = Date.now();
 
