@@ -11,7 +11,7 @@ import { AuthGate } from "@/components/auth/auth-gate";
 import { LinkedAccountsCard } from "@/components/auth/linked-accounts-card";
 import { useSession } from "@/components/auth/session-provider";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
-import { AuditConsole } from "@/components/app/audit-console";
+import { Inspector } from "@/components/app/inspector/inspector";
 
 function Console() {
   const { refresh, signOut } = useSession();
@@ -23,7 +23,9 @@ function Console() {
   return (
     <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16">
       <div>
-        <AuditConsole />
+        {/* Same surface as /app. The page is already inside a Suspense boundary,
+            which is what the inspector's `?token=` useSearchParams read needs. */}
+        <Inspector />
       </div>
 
       <aside className="space-y-6 lg:border-l lg:border-black/10 lg:pl-10">
