@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { ACCENT, FONT_STACK } from "@/lib/brand";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -8,7 +8,7 @@ import { AuthGate } from "@/components/auth/auth-gate";
 import { LinkedAccountsCard } from "@/components/auth/linked-accounts-card";
 import { useSession } from "@/components/auth/session-provider";
 import { ConnectWalletButton } from "@/components/web3/connect-wallet-button";
-import { AuditConsole } from "@/components/app/audit-console";
+import { Inspector } from "@/components/app/inspector/inspector";
 
 function Console() {
   const { refresh, signOut } = useSession();
@@ -22,7 +22,12 @@ function Console() {
   return (
     <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16">
       <div>
-        <AuditConsole />
+        {/* The inspector mirrors the inspected address into `?token=` via
+            useSearchParams, which Next requires to sit under a Suspense
+            boundary during prerender. */}
+        <Suspense fallback={null}>
+          <Inspector />
+        </Suspense>
       </div>
 
       <aside className="space-y-6 lg:border-l lg:border-black/10 lg:pl-10">

@@ -46,7 +46,9 @@ describe("Natural Language Specific Metric Queries & Question Binding", () => {
 
   it("renderSpecificMetricsCard should render Telegram HTML with specific holders count and bound metrics", () => {
     const card = renderSpecificMetricsCard(mockMetrics, ["TOP_HOLDERS", "MARKET_CAP"], "TELEGRAM");
-    expect(card).toContain("<b>🔮 Lattice Quick Answer — $GATO</b>");
+    expect(card).toContain("<b>🔮 $GATO</b> — EL GATO");
+    // The card links out rather than restating the full breakdown inline.
+    expect(card).toContain("/app?token=");
     expect(card).toContain("Holders:");
     expect(card).toContain("735");
     expect(card).toContain("Top 10: 19.71%");
@@ -57,7 +59,7 @@ describe("Natural Language Specific Metric Queries & Question Binding", () => {
 
   it("renderSpecificMetricsCard should render X Tweet reply text with bound metrics under 280 chars", () => {
     const card = renderSpecificMetricsCard(mockMetrics, ["PRICE", "VOLUME_24H"], "X");
-    expect(card).toContain("🔮 $GATO Quick Answer");
+    expect(card).toContain("🔮 $GATO — Lattice");
     expect(card).toContain("Price: $0.000353");
     expect(card).toContain("24h Vol: $682.13K");
     expect(card.length).toBeLessThan(280);
