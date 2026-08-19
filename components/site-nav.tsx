@@ -86,7 +86,7 @@ export function SiteNav() {
             custom={6}
             className="hidden sm:block"
           >
-            <ConnectWalletButton size="sm" />
+            <ConnectWalletButton size="sm" showChain={false} />
           </motion.div>
 
           <motion.button

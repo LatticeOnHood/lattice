@@ -19,10 +19,17 @@ export function ConnectWalletButton({
   className,
   size = "md",
   label = "Connect Wallet",
+  showChain = true,
 }: {
   className?: string;
   size?: "sm" | "md";
   label?: string;
+  /**
+   * The chain pill only ever reads "Robinhood Chain" on a single-chain app, so
+   * in the top nav it crowds the row without saying anything. Off there, on
+   * everywhere the wallet is the subject rather than a corner accessory.
+   */
+  showChain?: boolean;
 }) {
   const base = cn(
     "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold uppercase tracking-widest transition-opacity hover:opacity-80 disabled:opacity-50",
@@ -81,21 +88,23 @@ export function ConnectWalletButton({
 
               return (
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={openChainModal}
-                    className={cn(
-                      base,
-                      "border border-black/15 bg-white text-black"
-                    )}
-                    title={chain.name}
-                  >
-                    <span
-                      className="block h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: ACCENT }}
-                    />
-                    <span className="hidden sm:inline">{chain.name}</span>
-                  </button>
+                  {showChain && (
+                    <button
+                      type="button"
+                      onClick={openChainModal}
+                      className={cn(
+                        base,
+                        "border border-black/15 bg-white text-black"
+                      )}
+                      title={chain.name}
+                    >
+                      <span
+                        className="block h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: ACCENT }}
+                      />
+                      <span className="hidden sm:inline">{chain.name}</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
