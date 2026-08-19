@@ -39,7 +39,10 @@ async function request<T>(
         ...headers,
       },
     });
-  } catch {
+  } catch (err) {
+    // An abort is the caller withdrawing the request, not a network failure —
+    // rethrow it so React Query treats it as a cancellation, not an error.
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
     throw new ApiError("Could not reach the Lattice API. Check your connection.", 0);
   }
 
@@ -202,6 +205,8 @@ function toSession(token: string, state: Partial<LinkState>): AuthenticatedSessi
 
 /* ------------------------------------------------------------------- audit */
 
+export type DataSource = "codex.io" | "dexscreener";
+
 export interface TokenMetrics {
   address: string;
   name: string;
@@ -225,12 +230,95 @@ export interface TokenMetrics {
   devHoldingsPct?: number;
   devBuys?: number;
   devSells?: number;
+  /* Distribution and extrema — populated on the Codex.io path only. */
+  holdersCount?: number;
+  top10HoldersPct?: number;
+  athPrice?: number;
+  athFdv?: number;
+  atlPrice?: number;
+  /** Which indexer actually answered. Carried onto the report's provenance line. */
+  dataSource?: DataSource;
+}
+
+/* --------------------------------------------------- verification report */
+
+/**
+ * Mirror of `backend/src/integrations/virtuals/reportSchema.ts`.
+ *
+ * The contract's whole point is that a check Lattice cannot perform says so
+ * explicitly rather than returning a value that reads as a pass. The UI honours
+ * that: an unavailable check renders as "not yet measured", never as a blank
+ * tile and never as a zero.
+ */
+export type UnavailableReason =
+  | "not_implemented"
+  | "no_data_from_source"
+  | "no_declared_baseline";
+
+export interface AvailableCheck<T> {
+  available: true;
+  value: T;
+  source: DataSource;
+  fetchedAt: string;
+}
+
+export interface UnavailableCheck {
+  available: false;
+  reason: UnavailableReason;
+  plannedPhase?: string;
+  note?: string;
+}
+
+export type Check<T = unknown> = AvailableCheck<T> | UnavailableCheck;
+
+export function isAvailable<T>(check: Check<T> | undefined): check is AvailableCheck<T> {
+  return !!check && check.available === true;
+}
+
+export interface Txns24h {
+  buys: number;
+  sells: number;
+}
+
+export interface VerificationReport {
+  schemaVersion: string;
+  address: string;
+  chain: { name: string; chainId: number };
+  generatedAt: string;
+  token: { name: string; symbol: string } | null;
+  checks: {
+    priceUsd: Check<number>;
+    marketCap: Check<number>;
+    fdv: Check<number>;
+    liquidityUsd: Check<number>;
+    volume24h: Check<number>;
+    priceChange24h: Check<number>;
+    txns24h: Check<Txns24h>;
+    holderCount: Check<number>;
+    top10HoldersPct: Check<number>;
+    devHoldingsPct: Check<number>;
+    devTxns: Check<Txns24h>;
+    lpLocked: Check<boolean>;
+    honeypot: Check<boolean>;
+    ownershipRenounced: Check<boolean>;
+    mintDisabled: Check<boolean>;
+    sourceVerified: Check<boolean>;
+    promisesKept: Check<unknown>;
+  };
+  sources: { name: DataSource; queriedAt: string }[];
+  disclaimer: string;
 }
 
 export interface AuditResult {
   success: boolean;
   chain: string;
   metrics: TokenMetrics;
+  /**
+   * Present once the backend ships the additive `report` key. The inspector
+   * degrades to metrics-only rendering when it is absent, so the frontend can
+   * deploy ahead of the API.
+   */
+  report?: VerificationReport;
   renderedCards: {
     telegramHtml: string;
     twitterText: string;
@@ -240,11 +328,13 @@ export interface AuditResult {
 /** POST /api/audit — a contract address, or natural language for Groq to parse. */
 export async function runAudit(
   input: { address?: string; message?: string },
-  token?: string
+  token?: string,
+  signal?: AbortSignal
 ): Promise<AuditResult> {
   return request<AuditResult>("/api/audit", {
     method: "POST",
     body: JSON.stringify(input),
     token,
+    signal,
   });
 }

@@ -16,55 +16,47 @@ export function formatPrice(num: number | null | undefined): string {
   return `$${val.toFixed(6)}`;
 }
 
+/** Deep link to the full report on the dashboard. */
+function reportUrl(address: string): string {
+  return `https://latticehood.app/app?token=${address.toLowerCase()}`;
+}
+
 /**
- * Renders Telegram HTML Audit Card
+ * Renders the Telegram audit card.
+ *
+ * Deliberately short. A reply in a chat is a glance, not a dossier — the full
+ * breakdown (every check, its provenance, and which checks did not run) lives on
+ * the dashboard, and this card links to it. Anything added here has to earn its
+ * line against the reader scrolling past the whole message.
  */
 export function renderTelegramAuditCard(metrics: DexScreenerTokenMetrics): string {
   const priceChange = Number(metrics.priceChange24h) || 0;
-  const priceChangeIcon = priceChange >= 0 ? "📈" : "📉";
-  const priceChangeFormatted = `${priceChangeIcon} ${priceChange >= 0 ? "+" : ""}${priceChange.toFixed(2)}%`;
+  const changeStr = `${priceChange >= 0 ? "📈 +" : "📉 "}${priceChange.toFixed(1)}%`;
 
-  const holdersSection = metrics.holdersCount
-    ? `• <b>Holders:</b> <code>${metrics.holdersCount.toLocaleString()}</code>${metrics.top10HoldersPct ? ` (Top 10: ${metrics.top10HoldersPct.toFixed(2)}%)` : ""}\n`
-    : (metrics.top10HoldersPct ? `• <b>Top 10 Holders:</b> <code>${metrics.top10HoldersPct.toFixed(2)}%</code>\n` : "");
+  const lines: string[] = [
+    `• <b>Price</b> <code>${formatPrice(metrics.priceUsd)}</code> (${changeStr})`,
+    `• <b>MCap</b> <code>${formatUsd(metrics.marketCap)}</code> · <b>LP</b> <code>${formatUsd(metrics.liquidityUsd)}</code>`,
+    `• <b>Vol 24h</b> <code>${formatUsd(metrics.volume24h)}</code> · 🟢${metrics.buys24h || 0} / 🔴${metrics.sells24h || 0}`,
+  ];
 
-  const athSection = metrics.athPrice
-    ? `• <b>ATH Price:</b> <code>${formatPrice(metrics.athPrice)}</code> (${formatUsd(metrics.athFdv)})\n`
-    : "";
+  // Distribution only when the indexer actually returned it.
+  if (metrics.holdersCount || metrics.top10HoldersPct) {
+    const holders = metrics.holdersCount ? `<code>${metrics.holdersCount.toLocaleString()}</code>` : "—";
+    const top10 = metrics.top10HoldersPct ? ` (top 10: ${metrics.top10HoldersPct.toFixed(1)}%)` : "";
+    lines.push(`• <b>Holders</b> ${holders}${top10}`);
+  }
 
-  const devHoldingsStr = metrics.devHoldingsPct !== undefined
-    ? ` (Holdings: ${metrics.devHoldingsPct.toFixed(2)}%)`
-    : "";
-  const devTxnsStr = (metrics.devBuys !== undefined || metrics.devSells !== undefined)
-    ? ` | 🟢 <code>${metrics.devBuys || 0} Buys</code> | 🔴 <code>${metrics.devSells || 0} Sells</code>`
-    : "";
+  if (metrics.creatorAddress) {
+    const hold = metrics.devHoldingsPct !== undefined ? `${metrics.devHoldingsPct.toFixed(1)}%` : "—";
+    lines.push(`• <b>Dev</b> ${hold} held · 🟢${metrics.devBuys || 0} / 🔴${metrics.devSells || 0}`);
+  }
 
-  const creatorSection = metrics.creatorAddress
-    ? `• <b>Dev Wallet:</b> <code>${metrics.creatorAddress.slice(0, 6)}...${metrics.creatorAddress.slice(-4)}</code>${devHoldingsStr}${devTxnsStr}\n`
-    : "";
+  return `<b>🔮 $${metrics.symbol}</b> — ${metrics.name}
 
-  const securityHeader = (holdersSection || athSection || creatorSection)
-    ? `\n<b>🛡️ Security & Distribution</b>\n${holdersSection}${athSection}${creatorSection}`
-    : "";
+${lines.join("\n")}
 
-  return `<b>🔮 Lattice Audit Report — $${metrics.symbol}</b>
-<i>${metrics.name}</i> (Robinhood EVM)
-
-<b>📊 Market Valuation</b>
-• <b>Price:</b> <code>${formatPrice(metrics.priceUsd)}</code> (${metrics.priceNative || "0"})
-• <b>Market Cap:</b> <code>${formatUsd(metrics.marketCap)}</code>
-• <b>Liquidity Pool:</b> <code>${formatUsd(metrics.liquidityUsd)}</code>
-
-<b>📈 24h Trading Activity</b>
-• <b>24h Volume:</b> <code>${formatUsd(metrics.volume24h)}</code>
-• <b>24h Change:</b> <code>${priceChangeFormatted}</code>
-• <b>24h Transactions:</b> 🟢 <code>${metrics.buys24h || 0} Buys</code> | 🔴 <code>${metrics.sells24h || 0} Sells</code>
-• <b>DEX Venue:</b> <code>${(metrics.dexId || "uniswap").toUpperCase()}</code>${securityHeader}
-
-<b>🔗 Quick Links</b>
-• <a href="https://dexscreener.com/${metrics.dexId || "uniswap"}/${metrics.pairAddress || ""}">DexScreener Pair</a>
-${metrics.twitter ? `• <a href="${metrics.twitter}">Twitter / X</a>\n` : ""}${metrics.telegram ? `• <a href="${metrics.telegram}">Telegram Community</a>\n` : ""}
-<i>Powered by Lattice Audit Engine</i>`;
+<a href="${reportUrl(metrics.address)}">Full report →</a>
+<i>Market data only. Not financial advice.</i>`;
 }
 
 export function extractTwitterHandle(url?: string): string | null {
@@ -76,27 +68,41 @@ export function extractTwitterHandle(url?: string): string | null {
 /**
  * Renders X (Twitter) Tweet Reply Card (<280 chars)
  */
+/**
+ * Renders the X reply.
+ *
+ * Built to land in a single tweet, never a thread: the previous version emitted
+ * the full 42-character contract address plus seven labelled lines and three
+ * hashtags, which routinely overflowed 280 and split into a thread nobody asked
+ * for. Detail belongs on the dashboard, and the link carries the reader there.
+ *
+ * Optional lines are appended only while they still fit, so the reply degrades by
+ * dropping the least important figure rather than by spilling into a second post.
+ */
 export function renderTwitterAuditReply(metrics: DexScreenerTokenMetrics): string {
   const priceChange = Number(metrics.priceChange24h) || 0;
-  const priceChangeIcon = priceChange >= 0 ? "📈" : "📉";
-  const changeStr = `${priceChangeIcon}${priceChange >= 0 ? "+" : ""}${priceChange.toFixed(1)}%`;
-  const top10Str = metrics.top10HoldersPct ? ` | Top10: ${metrics.top10HoldersPct.toFixed(1)}%` : "";
-  const devStr = metrics.creatorAddress
-    ? `\nDev Wallet: ${metrics.creatorAddress.slice(0, 6)}...${metrics.creatorAddress.slice(-4)} (${metrics.devHoldingsPct !== undefined ? metrics.devHoldingsPct.toFixed(1) : "0"}% | 🟢${metrics.devBuys || 0}/🔴${metrics.devSells || 0})`
-    : "";
+  const changeStr = `${priceChange >= 0 ? "📈+" : "📉"}${priceChange.toFixed(1)}%`;
 
-  const handle = extractTwitterHandle(metrics.twitter);
-  const xHandleStr = handle ? ` | X: ${handle}` : "";
+  const head = `🔮 $${metrics.symbol} — Lattice`;
+  const core = [
+    `MCap ${formatUsd(metrics.marketCap)} · LP ${formatUsd(metrics.liquidityUsd)}`,
+    `24h ${formatUsd(metrics.volume24h)} (${changeStr}) · 🟢${metrics.buys24h || 0}/🔴${metrics.sells24h || 0}`,
+  ];
 
-  return `🔮 $${metrics.symbol} Token Audit
-CA: ${metrics.address}
-Price: ${formatPrice(metrics.priceUsd)}
-MCap: ${formatUsd(metrics.marketCap)} | LP: ${formatUsd(metrics.liquidityUsd)}
-24h Vol: ${formatUsd(metrics.volume24h)} (${changeStr})
-24h Tx: 🟢${metrics.buys24h || 0} / 🔴${metrics.sells24h || 0}${top10Str}${devStr}
-DEX: ${(metrics.dexId || "uniswap").toUpperCase()}${xHandleStr}
+  const optional: string[] = [];
+  if (metrics.top10HoldersPct) optional.push(`Top10 ${metrics.top10HoldersPct.toFixed(1)}%`);
+  if (metrics.creatorAddress && metrics.devHoldingsPct !== undefined) {
+    optional.push(`Dev ${metrics.devHoldingsPct.toFixed(1)}%`);
+  }
 
-#Lattice #RobinhoodEVM #TokenAudit`;
+  const tail = `\n${reportUrl(metrics.address)}`;
+
+  let body = `${head}\n${core.join("\n")}`;
+  if (optional.length && `${body}\n${optional.join(" · ")}${tail}`.length <= 280) {
+    body += `\n${optional.join(" · ")}`;
+  }
+
+  return `${body}${tail}`;
 }
 
 /**
@@ -243,19 +249,20 @@ export function renderSpecificMetricsCard(
     }
   }
 
+  // A targeted question gets a targeted answer — the asked-for figures and a link,
+  // not a card header and a sign-off.
   if (isTelegram) {
-    return `<b>🔮 Lattice Quick Answer — $${metrics.symbol}</b>
-<i>${metrics.name}</i> (Robinhood EVM)
+    return `<b>🔮 $${metrics.symbol}</b> — ${metrics.name}
 
 ${lines.join("\n")}
 
-<i>Powered by Lattice Audit Engine</i>`;
+<a href="${reportUrl(metrics.address)}">Full report →</a>`;
   }
 
-  return `🔮 $${metrics.symbol} Quick Answer
+  return `🔮 $${metrics.symbol} — Lattice
 ${lines.join("\n")}
 
-#Lattice #RobinhoodEVM`;
+${reportUrl(metrics.address)}`;
 }
 
 /**
