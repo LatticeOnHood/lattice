@@ -8,14 +8,19 @@ import { startAcpProvider } from "./integrations/virtuals/acp/provider";
 const PORT = process.env.PORT || 3001;
 
 async function start() {
-  try {
-    await migrate();
-  } catch (err) {
-    console.warn("[server] Migration warning (DB might be unreachable in dev mode):", err);
-  }
+  const server = app.listen(PORT, () => {
+    console.log(`[lattice-backend] Server running on port ${PORT}`);
+  });
+
+  // Run migrations in background (never blocks port binding)
+  migrate().catch((err) =>
+    console.warn("[server] Migration warning (DB might be unreachable in dev mode):", err)
+  );
 
   // Start background X worker polling
-  startTwitterWorker();
+  startTwitterWorker().catch((err) =>
+    console.warn("[server] Twitter worker start error:", err)
+  );
 
   // Register Telegram Webhook with Telegram API
   registerTelegramWebhook().catch((err) =>
@@ -26,10 +31,6 @@ async function start() {
   startAcpProvider().catch((err) =>
     console.warn("[server] ACP provider start error:", err)
   );
-
-  app.listen(PORT, () => {
-    console.log(`[lattice-backend] Server running on port ${PORT}`);
-  });
 }
 
 start();
