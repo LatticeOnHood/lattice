@@ -2533,9 +2533,6 @@ var VERIFICATION_REPORT_JSON_SCHEMA = {
   }
 };
 
-// src/integrations/virtuals/acp/provider.ts
-var import_acp_node_v2 = require("@virtuals-protocol/acp-node-v2");
-
 // src/integrations/virtuals/acp/offering.ts
 var OFFERING_NAME = "verifyToken";
 var OFFERING_PRICE_USD = 0.01;

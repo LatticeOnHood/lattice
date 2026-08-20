@@ -10,13 +10,10 @@
  *   job.funded   -> run the audit, deliver     (session.submit / session.reject)
  */
 
-import {
-  AcpAgent,
-  AssetToken,
+import type {
+  AcpAgent as AcpAgentType,
   JobSession,
-  PrivyAlchemyEvmProviderAdapter,
-  getEvmChainByChainId,
-  type JobRoomEntry,
+  JobRoomEntry,
 } from "@virtuals-protocol/acp-node-v2";
 import type { Address } from "viem";
 import { handleVerifyTokenJob } from "./handler";
@@ -93,6 +90,7 @@ export async function handleEntry(session: JobSession, entry: JobRoomEntry): Pro
 
   try {
     if (event.type === "job.created") {
+      const { AssetToken } = await import("@virtuals-protocol/acp-node-v2");
       const price = AssetToken.usdc(OFFERING_PRICE_USD, session.chainId);
       await session.setBudget(price);
       console.log(`[acp] job ${session.jobId}: quoted $${OFFERING_PRICE_USD} for ${OFFERING_NAME}`);
@@ -161,9 +159,9 @@ export function getAcpStatus(): AcpStatus {
   return { ...status, offering: { ...status.offering } };
 }
 
-let agent: AcpAgent | null = null;
+let agent: AcpAgentType | null = null;
 
-export async function startAcpProvider(): Promise<AcpAgent | null> {
+export async function startAcpProvider(): Promise<AcpAgentType | null> {
   const config = readAcpConfig();
 
   status.enabled = process.env.ACP_ENABLED === "true";
@@ -178,27 +176,22 @@ export async function startAcpProvider(): Promise<AcpAgent | null> {
   status.chainId = config.chainId;
   status.walletAddress = config.walletAddress;
 
-  /**
-   * The adapter must be told which chain to run on.
-   *
-   * Omitting `chains` defaults it to EVM_MAINNET_CHAINS — [Base 8453,
-   * Robinhood 4663] — and authenticates on `chains[0]`, i.e. Base. That would
-   * silently put the provider on Base mainnet, which is not what we chose, and
-   * would register the agent against chain 8453 rather than 4663.
-   *
-   * Passing a single chain also means the `chains` array on the registry record
-   * fills with the chain we actually intend.
-   */
-  const chain = getEvmChainByChainId(config.chainId);
-
-  if (!chain) {
-    status.connected = false;
-    status.lastError = `chain ${config.chainId} is not an ACP-supported EVM chain`;
-    console.error(`[acp] ${status.lastError}. Provider not started.`);
-    return null;
-  }
-
   try {
+    const {
+      AcpAgent,
+      PrivyAlchemyEvmProviderAdapter,
+      getEvmChainByChainId,
+    } = await import("@virtuals-protocol/acp-node-v2");
+
+    const chain = getEvmChainByChainId(config.chainId);
+
+    if (!chain) {
+      status.connected = false;
+      status.lastError = `chain ${config.chainId} is not an ACP-supported EVM chain`;
+      console.error(`[acp] ${status.lastError}. Provider not started.`);
+      return null;
+    }
+
     const evmProvider = await PrivyAlchemyEvmProviderAdapter.create({
       chains: [chain],
       walletId: config.walletId,
