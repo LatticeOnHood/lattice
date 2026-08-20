@@ -1,9 +1,15 @@
 {
   "version": 2,
+  "crons": [
+    {
+      "path": "/api/cron/twitter",
+      "schedule": "* * * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api"
+      "destination": "/api/index.js"
     }
   ]
 }

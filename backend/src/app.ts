@@ -6,6 +6,7 @@ import auditRouter from "./routes/audit";
 import telegramWebhookRouter from "./routes/telegramWebhook";
 import swapRouter from "./routes/swap";
 import verifyRouter from "./routes/verify";
+import cronRouter from "./routes/cron";
 import { rateLimit } from "./middleware/rateLimit";
 
 export const app = express();
@@ -51,3 +52,4 @@ app.use("/api/audit", auditLimiter, auditRouter);
 app.use("/api/webhook/telegram", telegramWebhookRouter);
 app.use("/api/swap", swapRouter);
 app.use("/api/v1", agentLimiter, verifyRouter);
+app.use("/api/cron", cronRouter);

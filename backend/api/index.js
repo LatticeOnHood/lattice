@@ -35,7 +35,7 @@ __export(serverless_exports, {
 module.exports = __toCommonJS(serverless_exports);
 
 // src/app.ts
-var import_express7 = __toESM(require("express"));
+var import_express8 = __toESM(require("express"));
 var import_cors = __toESM(require("cors"));
 
 // src/routes/health.ts
@@ -91,6 +91,31 @@ async function getLinkedXAccountByWallet(walletAddress) {
     };
   } catch (err) {
     console.error("[db-auth] getLinkedXAccountByWallet error:", err.message);
+    return null;
+  }
+}
+async function getWalletByXUserId(xUserId) {
+  try {
+    const { rows } = await queryWithTimeout(
+      "SELECT wallet_address FROM x_accounts WHERE x_user_id = $1",
+      [xUserId]
+    );
+    return rows.length === 0 ? null : rows[0].wallet_address;
+  } catch (err) {
+    console.error("[db-auth] getWalletByXUserId error:", err.message);
+    return null;
+  }
+}
+async function getWalletByXHandle(handle) {
+  try {
+    const normalized = handle.replace(/^@/, "").toLowerCase();
+    const { rows } = await queryWithTimeout(
+      "SELECT wallet_address FROM x_accounts WHERE LOWER(x_handle) = $1",
+      [normalized]
+    );
+    return rows.length === 0 ? null : rows[0].wallet_address;
+  } catch (err) {
+    console.error("[db-auth] getWalletByXHandle error:", err.message);
     return null;
   }
 }
@@ -201,6 +226,27 @@ async function getAuthenticatedXUser(accessToken) {
     username: json.data.username,
     name: json.data.name
   };
+}
+async function refreshXAccessToken(params) {
+  const credentials = Buffer.from(`${params.clientId}:${params.clientSecret}`).toString("base64");
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: params.refreshToken,
+    client_id: params.clientId
+  });
+  const response = await fetch("https://api.twitter.com/2/oauth2/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${credentials}`
+    },
+    body: body.toString()
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to refresh X token: ${errorText}`);
+  }
+  return response.json();
 }
 async function saveXBotTokens(accessToken, refreshToken) {
   try {
@@ -889,6 +935,24 @@ ${optional.join(" \xB7 ")}${tail}`.length <= 280) {
 ${optional.join(" \xB7 ")}`;
   }
   return `${body}${tail}`;
+}
+function splitTweetContent(text, maxLen = 280) {
+  if (text.length <= maxLen) return [text];
+  const threadSuffix = "\n\n(continued audit in thread \u{1F9F5})";
+  const maxChunk1Len = maxLen - threadSuffix.length;
+  let splitIndex = text.lastIndexOf("\n", maxChunk1Len);
+  if (splitIndex <= 0) {
+    splitIndex = text.lastIndexOf(" ", maxChunk1Len);
+  }
+  if (splitIndex <= 0) {
+    splitIndex = maxChunk1Len;
+  }
+  const chunk1 = text.slice(0, splitIndex).trim() + threadSuffix;
+  const remaining = text.slice(splitIndex).trim();
+  if (remaining.length <= maxLen) {
+    return [chunk1, remaining];
+  }
+  return [chunk1, ...splitTweetContent(remaining, maxLen)];
 }
 function renderSpecificMetricsCard(metrics, requestedMetrics, platform) {
   const isTelegram = platform === "TELEGRAM";
@@ -2590,6 +2654,331 @@ router6.get("/verify/:address", async (req, res) => {
 });
 var verify_default = router6;
 
+// src/routes/cron.ts
+var import_express7 = require("express");
+
+// src/bots/twitterBot.ts
+async function processTwitterMention(mention) {
+  const { authorXUserId, authorUsername, text } = mention;
+  const cleaned = text.replace(/@\w+/g, "").trim().toLowerCase();
+  if (cleaned === "/help" || cleaned === "help" || cleaned === "/start" || cleaned === "start" || cleaned === "/commands" || cleaned === "commands" || /^(?:help|commands|\/help|\/commands)(?:\s|$)/i.test(cleaned)) {
+    return renderHelpNotice("X");
+  }
+  let boundWallet = await getWalletByXUserId(authorXUserId);
+  if (!boundWallet && authorUsername) {
+    boundWallet = await getWalletByXHandle(authorUsername);
+    if (boundWallet) {
+      await linkXAccount(boundWallet, authorXUserId, authorUsername).catch(
+        (err) => console.warn("[x-bot] Failed to sync updated x_user_id:", err)
+      );
+    }
+  }
+  if (!boundWallet) {
+    console.log(`[x-bot] Mentions ignored for unlinked sender (authorId: ${authorXUserId}, username: @${authorUsername || "unknown"})`);
+    return null;
+  }
+  const intent = await parseIntentWithGroq(text);
+  if (intent.action === "HELP") {
+    return renderHelpNotice("X");
+  }
+  if (intent.action === "INVALID_CHAIN") {
+    return renderInvalidChainNotice("X");
+  }
+  if (intent.action === "TRADE" && intent.tradeDetails) {
+    try {
+      const { fromToken, toToken, amountIn } = intent.tradeDetails;
+      const quote = await quoteSwap(fromToken, toToken, amountIn);
+      if (!quote) {
+        return `\u26A0\uFE0F No active Uniswap liquidity route found for ${fromToken} -> ${toToken}. #Lattice`;
+      }
+      return renderTradeQuoteCard(quote, "X", intent.tradeDetails);
+    } catch (err) {
+      return `\u274C Trade Error: ${err.message || "Unable to quote trade."} #Lattice`;
+    }
+  }
+  if ((intent.action === "AUDIT" || intent.action === "SPECIFIC_METRICS") && intent.tokenAddress) {
+    try {
+      const metrics = await fetchTokenAuditData(intent.tokenAddress);
+      if (!metrics) {
+        return `\u26A0\uFE0F No liquidity pool found for token ${intent.tokenAddress}. #Lattice`;
+      }
+      await pool.query(
+        `INSERT INTO token_audits (contract_address, chain, token_name, token_symbol, market_cap, raw_gmgn_response)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          metrics.address,
+          "robinhood",
+          metrics.name,
+          metrics.symbol,
+          metrics.marketCap,
+          JSON.stringify(metrics)
+        ]
+      ).catch((err) => console.warn("[db] Failed to log audit:", err));
+      if (intent.action === "SPECIFIC_METRICS" && intent.requestedMetrics && intent.requestedMetrics.length > 0 && !intent.requestedMetrics.includes("FULL_AUDIT")) {
+        return renderSpecificMetricsCard(metrics, intent.requestedMetrics, "X");
+      }
+      return renderTwitterAuditReply(metrics);
+    } catch (err) {
+      return `\u274C Audit Error: ${err.message || "Unable to fetch token data."} #Lattice`;
+    }
+  }
+  return null;
+}
+
+// src/services/auth/xBotTokenManager.ts
+var REFRESH_MARGIN_MS = 5 * 60 * 1e3;
+var TOKEN_LIFETIME_MS = 2 * 60 * 60 * 1e3;
+var inFlightRefresh = null;
+async function getStoredToken() {
+  try {
+    const { rows } = await pool.query(
+      "SELECT access_token, refresh_token, updated_at FROM x_bot_tokens WHERE id = 'primary'"
+    );
+    if (rows.length === 0) return null;
+    const updatedAt = new Date(rows[0].updated_at);
+    return {
+      accessToken: rows[0].access_token,
+      refreshToken: rows[0].refresh_token,
+      expiresAt: new Date(updatedAt.getTime() + TOKEN_LIFETIME_MS)
+    };
+  } catch (err) {
+    console.warn("[x-token-manager] Failed to read x_bot_tokens from DB:", err.message);
+    return null;
+  }
+}
+async function saveToken(accessToken, refreshToken) {
+  try {
+    await pool.query(
+      `INSERT INTO x_bot_tokens (id, access_token, refresh_token, updated_at)
+       VALUES ('primary', $1, $2, NOW())
+       ON CONFLICT (id) DO UPDATE
+       SET access_token = EXCLUDED.access_token,
+           refresh_token = EXCLUDED.refresh_token,
+           updated_at = NOW()`,
+      [accessToken, refreshToken]
+    );
+  } catch (err) {
+    console.warn("[x-token-manager] Failed to save x_bot_tokens to DB:", err.message);
+  }
+}
+async function refreshAndSave(stored) {
+  const refreshed = await refreshXAccessToken({
+    refreshToken: stored.refreshToken,
+    clientId: process.env.X_CLIENT_ID || "",
+    clientSecret: process.env.X_CLIENT_SECRET || ""
+  });
+  const newRefreshToken = refreshed.refresh_token ?? stored.refreshToken;
+  await saveToken(refreshed.access_token, newRefreshToken);
+  console.log("[x-token-manager] Proactively refreshed and saved new X OAuth tokens.");
+  return refreshed.access_token;
+}
+async function getValidBotAccessToken() {
+  const stored = await getStoredToken();
+  const envAccessToken = process.env.X_ACCESS_TOKEN || "";
+  const envRefreshToken = process.env.X_REFRESH_TOKEN || "";
+  if (!stored) {
+    if (!envRefreshToken) return envAccessToken;
+    const seed = {
+      accessToken: envAccessToken,
+      refreshToken: envRefreshToken,
+      expiresAt: /* @__PURE__ */ new Date(0)
+      // Force refresh
+    };
+    if (!inFlightRefresh) {
+      inFlightRefresh = refreshAndSave(seed).finally(() => {
+        inFlightRefresh = null;
+      });
+    }
+    return inFlightRefresh;
+  }
+  if (Date.now() <= stored.expiresAt.getTime() - REFRESH_MARGIN_MS) {
+    return stored.accessToken;
+  }
+  if (!inFlightRefresh) {
+    inFlightRefresh = refreshAndSave(stored).catch((err) => {
+      console.warn("[x-token-manager] Refresh failed, using existing token:", err.message);
+      return stored.accessToken;
+    }).finally(() => {
+      inFlightRefresh = null;
+    });
+  }
+  return inFlightRefresh;
+}
+
+// src/services/x/xBotCursor.ts
+async function setCursor(stream, lastSeenId) {
+  try {
+    await pool.query(
+      `INSERT INTO x_bot_cursor (stream, last_seen_id, updated_at)
+       VALUES ($1, $2, now())
+       ON CONFLICT (stream) DO UPDATE
+       SET last_seen_id = EXCLUDED.last_seen_id, updated_at = now()`,
+      [stream, lastSeenId]
+    );
+  } catch (err) {
+    console.warn(`[x-bot-cursor] Failed to save cursor for ${stream}:`, err.message);
+  }
+}
+
+// src/workers/twitterWorker.ts
+var X_BOT_ENABLED = process.env.X_BOT_ENABLED === "true";
+var lastSeenTweetId = null;
+var cachedBotUserId = null;
+async function getBotUserId() {
+  if (cachedBotUserId) return cachedBotUserId;
+  try {
+    const token = await getValidBotAccessToken();
+    const user = await getAuthenticatedXUser(token);
+    cachedBotUserId = user.id;
+    console.log(`[twitter-worker] Resolved bot X User ID: ${user.id} (@${user.username})`);
+    return cachedBotUserId;
+  } catch (err) {
+    console.error("[twitter-worker] Failed to resolve bot X User ID:", err.message);
+    return null;
+  }
+}
+async function fetchBotMentions(sinceId) {
+  const token = await getValidBotAccessToken();
+  if (!token) return [];
+  const botUserId = await getBotUserId();
+  if (!botUserId) return [];
+  const url = new URL(`https://api.twitter.com/2/users/${botUserId}/mentions`);
+  url.searchParams.set("tweet.fields", "author_id,created_at,text");
+  url.searchParams.set("expansions", "author_id");
+  url.searchParams.set("user.fields", "username");
+  url.searchParams.set("max_results", "10");
+  if (sinceId) {
+    url.searchParams.set("since_id", sinceId);
+  }
+  const response = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) {
+    if (response.status === 429) {
+      console.warn("[twitter-worker] Rate limited by Twitter API (429). Backing off for this cycle.");
+    } else {
+      const text = await response.text().catch(() => "");
+      console.warn(`[twitter-worker] Mentions fetch error (${response.status}): ${text}`);
+    }
+    return [];
+  }
+  const json = await response.json();
+  const tweets = json.data || [];
+  const users = json.includes?.users || [];
+  const usersMap = /* @__PURE__ */ new Map();
+  for (const u of users) {
+    if (u.id && u.username) {
+      usersMap.set(u.id, u.username);
+    }
+  }
+  return tweets.map((t) => ({
+    id: t.id,
+    author_id: t.author_id,
+    author_username: usersMap.get(t.author_id) || void 0,
+    text: t.text
+  }));
+}
+async function postReplyTweet(replyText, inReplyToTweetId) {
+  const token = await getValidBotAccessToken();
+  if (!token) return null;
+  const response = await fetch("https://api.twitter.com/2/tweets", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      text: replyText,
+      reply: { in_reply_to_tweet_id: inReplyToTweetId }
+    })
+  });
+  if (response.ok) {
+    const json = await response.json();
+    return json.data?.id || null;
+  }
+  const errorText = await response.text().catch(() => "");
+  console.warn(`[twitter-worker] Reply tweet returned ${response.status}: ${errorText}`);
+  if (response.status === 403) {
+    console.log("[twitter-worker] Attempting quote tweet fallback for restricted conversation...");
+    const quoteResponse = await fetch("https://api.twitter.com/2/tweets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        text: replyText,
+        quote_tweet_id: inReplyToTweetId
+      })
+    });
+    if (quoteResponse.ok) {
+      const json = await quoteResponse.json();
+      console.log(`[twitter-worker] Successfully posted quote tweet fallback (id: ${json.data?.id})`);
+      return json.data?.id || null;
+    } else {
+      const quoteErr = await quoteResponse.text().catch(() => "");
+      console.error(`[twitter-worker] Quote tweet fallback failed (${quoteResponse.status}): ${quoteErr}`);
+    }
+  }
+  return null;
+}
+async function pollTwitterMentionsOnce() {
+  try {
+    const mentions = await fetchBotMentions(lastSeenTweetId || void 0);
+    if (mentions.length === 0) return 0;
+    let processedCount = 0;
+    const sortedMentions = mentions.reverse();
+    for (const tweet of sortedMentions) {
+      const tweetId = tweet.id;
+      const authorXUserId = tweet.author_id;
+      const authorUsername = tweet.author_username;
+      const text = tweet.text;
+      if (!authorXUserId || !text) continue;
+      const replyText = await processTwitterMention({
+        tweetId,
+        authorXUserId,
+        authorUsername,
+        text
+      });
+      if (replyText) {
+        const chunks = splitTweetContent(replyText);
+        let parentTweetId = tweetId;
+        for (const chunk of chunks) {
+          const postedId = await postReplyTweet(chunk, parentTweetId);
+          if (postedId) {
+            parentTweetId = postedId;
+          } else {
+            break;
+          }
+        }
+        processedCount++;
+      }
+    }
+    const lastId = sortedMentions[sortedMentions.length - 1]?.id;
+    if (lastId) {
+      lastSeenTweetId = lastId;
+      await setCursor("mentions", lastId);
+    }
+    return processedCount;
+  } catch (err) {
+    console.error("[twitter-worker] Error in polling cycle:", err);
+    return 0;
+  }
+}
+
+// src/routes/cron.ts
+var router7 = (0, import_express7.Router)();
+router7.get("/twitter", async (req, res) => {
+  try {
+    const processed = await pollTwitterMentionsOnce();
+    return res.json({ ok: true, processed, timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  } catch (err) {
+    console.error("[cron-twitter] Error:", err?.message || err);
+    return res.status(500).json({ error: err?.message || "Internal error" });
+  }
+});
+var cron_default = router7;
+
 // src/middleware/rateLimit.ts
 function defaultKey(req) {
   const wallet = req.user?.walletAddress;
@@ -2636,10 +3025,10 @@ function rateLimit({ windowMs, max, keyOf = defaultKey }) {
 }
 
 // src/app.ts
-var app = (0, import_express7.default)();
+var app = (0, import_express8.default)();
 app.set("trust proxy", 1);
 app.use((0, import_cors.default)());
-app.use(import_express7.default.json());
+app.use(import_express8.default.json());
 app.use((req, res, next) => {
   const start = Date.now();
   res.on("finish", () => {
@@ -2656,6 +3045,7 @@ app.use("/api/audit", auditLimiter, audit_default);
 app.use("/api/webhook/telegram", telegramWebhook_default);
 app.use("/api/swap", swap_default);
 app.use("/api/v1", agentLimiter, verify_default);
+app.use("/api/cron", cron_default);
 
 // src/serverless.ts
 var serverless_default = app;
