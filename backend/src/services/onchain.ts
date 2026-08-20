@@ -133,12 +133,12 @@ async function balanceOf(token: Address, holder: Address): Promise<bigint | unde
 /* ------------------------------------------------------ float / supply split */
 
 export interface FloatBreakdown {
-  totalSupply: bigint;
+  totalSupply: string;
   /**
    * Sitting in the liquidity pool. Undefined when the pool's token balance
    * could not be established — see `pooledUnknown`.
    */
-  pooled?: bigint;
+  pooled?: string;
   /**
    * True when the pool holds no tokens at the given address while the market
    * clearly has liquidity. Uniswap v4 keeps every pool's balance in one
@@ -148,11 +148,11 @@ export interface FloatBreakdown {
    */
   pooledUnknown: boolean;
   /** Provably unrecoverable. */
-  burned: bigint;
+  burned: string;
   /** Held by the deployer, read from chain rather than taken from the indexer. */
-  deployer?: bigint;
+  deployer?: string;
   /** totalSupply minus pooled and burned. Undefined when pooled is unknown. */
-  float?: bigint;
+  float?: string;
   pooledPct?: number;
   burnedPct: number;
   floatPct?: number;
@@ -216,11 +216,11 @@ export async function readFloat(
     pooledRaw === undefined || (pooledRaw === 0n && hasMarketLiquidity);
 
   const base: FloatBreakdown = {
-    totalSupply: total,
+    totalSupply: total.toString(),
     pooledUnknown,
-    burned,
+    burned: burned.toString(),
     burnedPct: pct(burned),
-    deployer: deployerRaw,
+    deployer: deployerRaw !== undefined ? deployerRaw.toString() : undefined,
     deployerPctOfSupply: deployerRaw !== undefined ? pct(deployerRaw) : undefined,
   };
 
@@ -231,8 +231,8 @@ export async function readFloat(
 
   return {
     ...base,
-    pooled,
-    float,
+    pooled: pooled.toString(),
+    float: float.toString(),
     pooledPct: pct(pooled),
     floatPct: pct(float),
     deployerPctOfFloat:
