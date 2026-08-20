@@ -2,10 +2,10 @@
   "name": "lattice-backend",
   "version": "1.0.0",
   "description": "Lattice token audit & verification backend API powered by GMGN",
-  "type": "module",
   "main": "src/index.ts",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
+    "build": "esbuild api/index.ts --bundle --platform=node --target=node18 --format=cjs --packages=external --outfile=api/index.js",
     "start": "bun run src/index.ts",
     "check": "tsc --noEmit",
     "test": "bun test"
@@ -27,6 +27,7 @@
     "@types/pg": "^8.11.10",
     "@types/supertest": "^6.0.2",
     "bun-types": "^1.1.42",
+    "esbuild": "^0.28.2",
     "supertest": "^7.0.0",
     "typescript": "^5.7.2"
   }
