@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "build": "esbuild api/index.ts --bundle --platform=node --target=node18 --format=cjs --packages=external --outfile=api/index.js",
+    "build": "esbuild src/serverless.ts --bundle --platform=node --target=node18 --format=cjs --packages=external --outfile=api/index.js",
     "start": "bun run src/index.ts",
     "check": "tsc --noEmit",
     "test": "bun test"

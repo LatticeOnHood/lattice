@@ -27,12 +27,12 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// api/index.ts
-var index_exports = {};
-__export(index_exports, {
-  default: () => index_default
+// src/serverless.ts
+var serverless_exports = {};
+__export(serverless_exports, {
+  default: () => serverless_default
 });
-module.exports = __toCommonJS(index_exports);
+module.exports = __toCommonJS(serverless_exports);
 
 // src/app.ts
 var import_express7 = __toESM(require("express"));
@@ -2660,5 +2660,5 @@ app.use("/api/webhook/telegram", telegramWebhook_default);
 app.use("/api/swap", swap_default);
 app.use("/api/v1", agentLimiter, verify_default);
 
-// api/index.ts
-var index_default = app;
+// src/serverless.ts
+var serverless_default = app;
