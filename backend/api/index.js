@@ -67,6 +67,9 @@ var pool = new import_pg.Pool({
   idleTimeoutMillis: 3e4,
   ssl: isRemoteDb ? { rejectUnauthorized: false } : false
 });
+pool.on("error", (err) => {
+  console.warn("[db-pool] Idle client disconnected:", err.message);
+});
 
 // src/services/auth/accountBindingService.ts
 async function queryWithTimeout(text, params, ms = 2500) {
@@ -3039,6 +3042,14 @@ app.use((req, res, next) => {
 });
 var auditLimiter = rateLimit({ windowMs: 6e4, max: 240 });
 var agentLimiter = rateLimit({ windowMs: 6e4, max: 480 });
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "lattice-backend",
+    docs: "https://api.latticehood.app/api/v1/schema",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString()
+  });
+});
 app.use("/health", health_default);
 app.use("/auth", auth_default);
 app.use("/api/audit", auditLimiter, audit_default);

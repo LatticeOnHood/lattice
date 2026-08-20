@@ -46,6 +46,14 @@ const auditLimiter = rateLimit({ windowMs: 60_000, max: 240 });
 const agentLimiter = rateLimit({ windowMs: 60_000, max: 480 });
 
 // Routes
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "lattice-backend",
+    docs: "https://api.latticehood.app/api/v1/schema",
+    timestamp: new Date().toISOString(),
+  });
+});
 app.use("/health", healthRouter);
 app.use("/auth", authRouter);
 app.use("/api/audit", auditLimiter, auditRouter);

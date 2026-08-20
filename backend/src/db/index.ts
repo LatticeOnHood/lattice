@@ -9,3 +9,7 @@ export const pool = new Pool({
   idleTimeoutMillis: 30000,
   ssl: isRemoteDb ? { rejectUnauthorized: false } : false,
 });
+
+pool.on("error", (err) => {
+  console.warn("[db-pool] Idle client disconnected:", err.message);
+});
