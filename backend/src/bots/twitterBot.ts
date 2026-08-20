@@ -27,7 +27,21 @@ export interface TwitterIncomingMention {
 export async function processTwitterMention(mention: TwitterIncomingMention): Promise<string | null> {
   const { authorXUserId, authorUsername, text } = mention;
 
-  // 1. Enforce 1:1 Wallet Binding authorization check (TagioPay Pattern: Silently ignore unlinked senders)
+  // 1. Check for Help / Commands intent
+  const cleaned = text.replace(/@\w+/g, "").trim().toLowerCase();
+  if (
+    cleaned === "/help" ||
+    cleaned === "help" ||
+    cleaned === "/start" ||
+    cleaned === "start" ||
+    cleaned === "/commands" ||
+    cleaned === "commands" ||
+    /^(?:help|commands|\/help|\/commands)(?:\s|$)/i.test(cleaned)
+  ) {
+    return renderHelpNotice("X");
+  }
+
+  // 2. Enforce 1:1 Wallet Binding authorization check (TagioPay Pattern: Silently ignore unlinked senders)
   let boundWallet = await getWalletByXUserId(authorXUserId);
   if (!boundWallet && authorUsername) {
     boundWallet = await getWalletByXHandle(authorUsername);

@@ -113,8 +113,17 @@ export function parseRequestedMetricsFromText(text: string): RequestedMetric[] {
  */
 export async function parseIntentWithGroq(userMessage: string): Promise<ParsedIntent> {
   const directAddress = extractEvmAddress(userMessage);
+  const normalizedText = userMessage.replace(/@\w+/g, "").trim().toLowerCase();
 
-  if (userMessage.trim().startsWith("/start") || userMessage.trim().startsWith("/help")) {
+  if (
+    normalizedText === "/help" ||
+    normalizedText === "help" ||
+    normalizedText === "/start" ||
+    normalizedText === "start" ||
+    normalizedText === "/commands" ||
+    normalizedText === "commands" ||
+    /^(?:help|commands|\/help|\/commands)(?:\s|$)/i.test(normalizedText)
+  ) {
     return { action: "HELP", tokenAddress: null, requestedMetrics: [], rawQuery: userMessage };
   }
 

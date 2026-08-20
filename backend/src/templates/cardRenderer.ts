@@ -285,18 +285,34 @@ Please connect your wallet and link your account at:
  */
 export function renderHelpNotice(platform: "X" | "TELEGRAM"): string {
   if (platform === "TELEGRAM") {
-    return `🔮 <b>Welcome to Lattice Audit Bot</b>
+    return `🔮 <b>Lattice On-Chain Bot — Commands & Guide</b>
 
-Tag or paste a Robinhood EVM token contract address (0x...) to get an instant token audit report.
+Lattice gives you real-time token audits, holder analysis, and non-custodial Uniswap trading on <b>Robinhood EVM Chain</b>.
 
-<b>Commands:</b>
-• <code>/audit 0x...</code> — Run instant token audit
-• <code>/help</code> — Show this help message
+<b>📊 Token Audits & Metrics</b>
+• <code>0x...</code> or <code>/audit 0x...</code> — Full token security audit
+• <code>How many holders of 0x...</code> — Holder count & distribution
+• <code>Dev holdings of 0x...</code> — Creator wallet holdings & transactions
+• <code>Price / MCap / Volume of 0x...</code> — Real-time price & liquidity
 
-<i>Note: Only verified accounts bound to an EVM wallet can run audits.</i>`;
+<b>⚡ Non-Custodial Trading</b>
+• <code>Buy 0.05 ETH of 0x...</code> — Quote & execute buy route
+• <code>Sell 1000 AAPL for USDG</code> — Quote & execute sell route
+
+<b>🔗 Account & Settings</b>
+• <code>/link</code> — Bind your Telegram account to your EVM wallet
+• <code>/help</code> — Show this commands menu
+
+<i>Web Dashboard: <a href="https://latticehood.app">latticehood.app</a></i>`;
   }
 
-  return `🔮 Welcome to Lattice! Mention @latticehoodbot with a Robinhood EVM token address (0x...) for instant token audits. Learn more at https://latticehood.app`;
+  return `🔮 Lattice Bot Guide:
+• Audits: Mention @latticehoodbot with 0x...
+• Metrics: "@latticehoodbot how many holders of 0x..."
+• Swaps: "@latticehoodbot Buy 0.05 ETH of 0x..."
+• Connect: https://latticehood.app/connect
+
+#Lattice #RobinhoodEVM`;
 }
 
 /**

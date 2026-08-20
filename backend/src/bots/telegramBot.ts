@@ -80,6 +80,19 @@ export async function processTelegramMessage(msg: TelegramIncomingMessage): Prom
   const { userId, username, text } = msg;
 
   const trimmedText = text.trim();
+  const lowerCleaned = trimmedText.replace(/@\w+/g, "").trim().toLowerCase();
+
+  // Check for explicit /help, help, or /start commands (accessible immediately)
+  if (
+    lowerCleaned === "/help" ||
+    lowerCleaned === "help" ||
+    lowerCleaned === "/start" ||
+    lowerCleaned === "start" ||
+    lowerCleaned === "/commands" ||
+    lowerCleaned === "commands"
+  ) {
+    return renderHelpNotice("TELEGRAM");
+  }
 
   // Check for explicit /link or /start link_ command
   if (trimmedText.startsWith("/link") || trimmedText.startsWith("/start link_")) {
