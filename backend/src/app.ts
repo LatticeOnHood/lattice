@@ -28,16 +28,21 @@ app.use((req, res, next) => {
 });
 
 /**
- * Read budgets, per caller. Both surfaces hit the same upstream indexers, so both
- * are limited; the agent surface gets a larger allowance because an autonomous
- * client legitimately polls harder than a person typing addresses.
+ * Abuse ceilings, per caller — deliberately not a usage budget.
+ *
+ * These started at 20/min for the dashboard, which was far too tight: a person
+ * checking a handful of tokens, retrying a stalled request, or clicking through
+ * a few reports burns that in under a minute and gets locked out of their own
+ * product. The limit exists to stop one trending contract from draining the
+ * upstream RPC and indexer budget, not to ration ordinary use, so it is set well
+ * above anything a human generates and only bites on genuine runaway traffic.
  *
  * Not applied to /health (must stay probe-able), /auth (its own failure modes) or
  * the Telegram webhook (Telegram controls that call rate, and dropping a webhook
  * loses a user's message).
  */
-const auditLimiter = rateLimit({ windowMs: 60_000, max: 20 });
-const agentLimiter = rateLimit({ windowMs: 60_000, max: 60 });
+const auditLimiter = rateLimit({ windowMs: 60_000, max: 240 });
+const agentLimiter = rateLimit({ windowMs: 60_000, max: 480 });
 
 // Routes
 app.use("/health", healthRouter);
