@@ -5,16 +5,25 @@
  * a renderer.
  *
  * The hard rule this module exists to enforce: **no output of this function ever
- * asserts that a token is safe.** Lattice can currently read market and
- * distribution data, and cannot yet read LP locks, honeypot behaviour, mint
- * authority, ownership or source verification (see the `notImplemented(...)`
- * checks in `backend/src/integrations/virtuals/buildReport.ts`). A verdict of
- * "safe" drawn from market data alone would be exactly the false signal that
- * report schema was written to prevent. The best case here is "no elevated
+ * asserts that a token is safe.** It now reads contract state directly —
+ * upgradeability, ownership, bytecode levers, free float, and a simulated
+ * transfer — alongside market and distribution data. LP lock detection and
+ * source verification remain unavailable, the latter because Robinhood Chain's
+ * explorer exposes no JSON API.
+ *
+ * More coverage does not relax the rule. A simulated transfer that succeeded at
+ * one block is not a promise about the next, a selector absent from bytecode is
+ * not proof a function cannot be reached, and a contract that is not a proxy
+ * today can still be drained by an owner. The best case remains "no elevated
  * signals", always shown next to how many checks actually ran.
  */
 
-import { isAvailable, type TokenMetrics, type VerificationReport } from "@/lib/api";
+import {
+  isAvailable,
+  type OnchainReading,
+  type TokenMetrics,
+  type VerificationReport,
+} from "@/lib/api";
 
 export type SignalLevel = "critical" | "caution" | "clear" | "unknown";
 
@@ -142,7 +151,7 @@ function liquidityRatio(m: TokenMetrics): RiskSignal {
   };
 }
 
-function concentration(m: TokenMetrics): RiskSignal {
+function concentration(m: TokenMetrics, chain?: OnchainReading): RiskSignal {
   const label = "Top-10 Concentration";
   const top10 = finite(m.top10HoldersPct);
   if (top10 === undefined) {
@@ -153,6 +162,23 @@ function concentration(m: TokenMetrics): RiskSignal {
       detail: "The indexer returned no holder-distribution data for this token.",
     };
   }
+
+  /**
+   * The indexer's top-N counts the pool as a holder. Once the pooled share is
+   * measured on chain, a top-10 figure that is mostly liquidity is downgraded
+   * rather than fired as concentration — otherwise a perfectly ordinary token
+   * gets a critical flag for having deep liquidity.
+   */
+  const pooled = chain?.float?.pooledPct;
+  if (pooled !== undefined && top10 - pooled < 25) {
+    return {
+      id: "concentration",
+      label,
+      level: pooled >= top10 - 5 ? "clear" : "caution",
+      detail: `Top 10 hold ${top10.toFixed(1)}%, but ${pooled.toFixed(1)}% of that is the liquidity pool. Roughly ${Math.max(0, top10 - pooled).toFixed(1)}% sits with ordinary wallets.`,
+    };
+  }
+
   // The caveat that these may include LP, CEX or burn addresses is stated once on
   // the panel header rather than repeated inside every concentration message.
   if (top10 > 50) {
@@ -396,6 +422,195 @@ function drawdown(m: TokenMetrics): RiskSignal {
   };
 }
 
+/* ------------------------------------------------------- on-chain signals */
+
+/**
+ * Upgradeability, which conditions everything else in the report.
+ *
+ * If the admin can swap the implementation, every other finding describes code
+ * that may not be the code running tomorrow.
+ */
+function upgradeable(chain?: OnchainReading): RiskSignal {
+  const label = "Upgradeability";
+  const proxy = chain?.proxy;
+  if (!proxy) {
+    return {
+      id: "upgradeable",
+      label,
+      level: "unknown",
+      detail: "Proxy storage slots were not read.",
+    };
+  }
+  if (proxy.isProxy) {
+    return {
+      id: "upgradeable",
+      label,
+      level: "critical",
+      detail: `Upgradeable ${proxy.standard === "eip1822" ? "UUPS" : "EIP-1967"} proxy. The admin can replace the contract's logic, so every other finding here describes code that can be swapped.`,
+    };
+  }
+  return {
+    id: "upgradeable",
+    label,
+    level: "clear",
+    detail: "Not an upgradeable proxy — the deployed logic is fixed.",
+  };
+}
+
+/** Free float, measured on chain rather than inferred from an indexer's top-N. */
+function floatShare(chain?: OnchainReading): RiskSignal {
+  const label = "Free Float";
+  const f = chain?.float;
+  if (!f) {
+    return { id: "float", label, level: "unknown", detail: "Supply split was not read from chain." };
+  }
+  if (f.pooledUnknown || f.floatPct === undefined || f.pooledPct === undefined) {
+    return {
+      id: "float",
+      label,
+      level: "unknown",
+      detail:
+        "The pool holds no balance at the address the indexer gave, which is what a Uniswap v4 pool id looks like — its liquidity lives in a shared PoolManager. The tradeable share cannot be measured this way.",
+    };
+  }
+  const detail = `${f.floatPct.toFixed(1)}% of supply can actually trade — ${f.pooledPct.toFixed(1)}% sits in the pool${f.burnedPct > 0.01 ? `, ${f.burnedPct.toFixed(1)}% burned` : ""}.`;
+  if (f.floatPct < 5) {
+    return {
+      id: "float",
+      label,
+      level: "critical",
+      detail: `${detail} Almost nothing is tradeable, so quoted market cap is not backed by a real market.`,
+    };
+  }
+  if (f.floatPct < 15) {
+    return { id: "float", label, level: "caution", detail };
+  }
+  return { id: "float", label, level: "clear", detail };
+}
+
+/**
+ * Deployer holdings against float, not against total supply.
+ *
+ * Measured against total supply, a deployer holding looks small purely because
+ * most of supply is locked in the pool. Against what can actually trade, the
+ * same position may dominate the market.
+ */
+function deployerVsFloat(chain?: OnchainReading): RiskSignal {
+  const label = "Deployer vs Float";
+  const f = chain?.float;
+  // Falls back to share-of-supply when the pooled balance is unknown, rather
+  // than dropping the signal entirely — the chain-read holding is still worth
+  // reporting, just against a different denominator.
+  const pct = f?.deployerPctOfFloat ?? f?.deployerPctOfSupply;
+  const basis = f?.deployerPctOfFloat !== undefined ? "tradeable float" : "total supply";
+  if (pct === undefined) {
+    return {
+      id: "deployer-float",
+      label,
+      level: "unknown",
+      detail: "No deployer address identified, so its holdings cannot be attributed.",
+    };
+  }
+  const detail = `The deployer holds ${pct.toFixed(2)}% of ${basis}, read from chain.`;
+  if (pct > 20) {
+    return { id: "deployer-float", label, level: "critical", detail: `${detail} Enough to dictate the market.` };
+  }
+  if (pct > 8) {
+    return { id: "deployer-float", label, level: "caution", detail };
+  }
+  return { id: "deployer-float", label, level: "clear", detail };
+}
+
+/** Result of the transfer simulation. */
+function sellTest(chain?: OnchainReading): RiskSignal {
+  const label = "Transfer Test";
+  const sell = chain?.sell;
+  if (!sell || sell.balanceSlot === undefined) {
+    return {
+      id: "sell-test",
+      label,
+      level: "unknown",
+      detail:
+        "The token's balance storage layout could not be resolved, so no transfer was simulated.",
+    };
+  }
+  if (!sell.transferOk) {
+    return {
+      id: "sell-test",
+      label,
+      level: "critical",
+      detail: "A simulated transfer reverted. Holders may be unable to move this token at all.",
+    };
+  }
+  if (sell.sellOk === false) {
+    return {
+      id: "sell-test",
+      label,
+      level: "critical",
+      detail:
+        "An ordinary transfer succeeded but a transfer into the pool reverted — the classic sell-blocked shape.",
+    };
+  }
+  return {
+    id: "sell-test",
+    label,
+    level: "clear",
+    detail: "A transfer simulated successfully at the current block. Not a guarantee of future behaviour.",
+  };
+}
+
+/** Rug levers found in the deployed bytecode. */
+function contractLevers(chain?: OnchainReading): RiskSignal {
+  const label = "Contract Levers";
+  const code = chain?.bytecode;
+  if (!code) {
+    return { id: "levers", label, level: "unknown", detail: "Bytecode was not read." };
+  }
+  if (code.levers.length === 0) {
+    return {
+      id: "levers",
+      label,
+      level: "clear",
+      detail: `No mint, pause or blacklist selectors found in ${code.sizeBytes.toLocaleString("en-US")} bytes of bytecode.`,
+    };
+  }
+  const serious = code.hasMint || code.hasPause || code.hasBlacklist;
+  return {
+    id: "levers",
+    label,
+    level: serious ? "caution" : "clear",
+    // Present, not callable — the distinction matters and is stated.
+    detail: `Present in bytecode: ${code.levers.join(", ")}. Whether these are callable, and by whom, was not determined.`,
+  };
+}
+
+/** Ownership, keeping "no owner function" distinct from "renounced". */
+function ownership(chain?: OnchainReading): RiskSignal {
+  const label = "Ownership";
+  const owner = chain?.owner;
+  if (!owner) {
+    return { id: "ownership", label, level: "unknown", detail: "Ownership was not read." };
+  }
+  if (owner.kind === "renounced") {
+    return { id: "ownership", label, level: "clear", detail: "Ownership renounced to the zero address." };
+  }
+  if (owner.kind === "owned") {
+    return {
+      id: "ownership",
+      label,
+      level: "caution",
+      detail: `Owned by ${owner.owner.slice(0, 6)}…${owner.owner.slice(-4)}. Owner-only functions remain callable.`,
+    };
+  }
+  return {
+    id: "ownership",
+    label,
+    level: "unknown",
+    detail:
+      "No owner-style function responded. That is not a renouncement — a role-based contract can still have a live admin.",
+  };
+}
+
 /* -------------------------------------------------------------- coverage */
 
 /**
@@ -405,18 +620,38 @@ function drawdown(m: TokenMetrics): RiskSignal {
  * which metric fields carry real values, which is the honest fallback while the
  * frontend runs ahead of the API.
  */
-export function coverageOf(metrics: TokenMetrics, report?: VerificationReport): Coverage {
+export function coverageOf(
+  metrics: TokenMetrics,
+  report?: VerificationReport,
+  chain?: OnchainReading
+): Coverage {
+  /**
+   * On-chain reads sit outside the report schema, so they are counted alongside
+   * it. Without this the coverage line would understate what actually ran and
+   * keep implying the contract was never inspected.
+   */
+  const chainChecks = [
+    chain?.proxy !== undefined,
+    chain?.owner !== undefined && chain.owner.kind !== "no_owner_function",
+    chain?.bytecode !== undefined,
+    chain?.float !== undefined,
+    chain?.sell?.balanceSlot !== undefined,
+  ];
+  const chainMeasured = chainChecks.filter(Boolean).length;
+  const chainTotal = chainChecks.length;
+
   if (report) {
     const checks = Object.values(report.checks);
     const measured = checks.filter((c) => isAvailable(c)).length;
     const unimplemented = checks.filter(
       (c) => !isAvailable(c) && c.reason === "not_implemented"
     ).length;
+    const total = checks.length + chainTotal;
     return {
-      measured,
-      total: checks.length,
+      measured: measured + chainMeasured,
+      total,
       unimplemented,
-      noData: checks.length - measured - unimplemented,
+      noData: total - measured - chainMeasured - unimplemented,
     };
   }
 
@@ -446,12 +681,21 @@ export function coverageOf(metrics: TokenMetrics, report?: VerificationReport): 
 
 export function assessRisk(
   metrics: TokenMetrics,
-  report?: VerificationReport
+  report?: VerificationReport,
+  chain?: OnchainReading
 ): RiskAssessment {
   const signals = [
+    // Contract-level first: these condition how much the market signals are worth.
+    upgradeable(chain),
+    sellTest(chain),
+    ownership(chain),
+    contractLevers(chain),
+    floatShare(chain),
+    deployerVsFloat(chain),
+    // Market and distribution.
     liquidityFloor(metrics),
     liquidityRatio(metrics),
-    concentration(metrics),
+    concentration(metrics, chain),
     devHoldings(metrics),
     devSelling(metrics),
     tradeSkew(metrics),
@@ -468,7 +712,7 @@ export function assessRisk(
   };
   for (const signal of signals) counts[signal.level] += 1;
 
-  const coverage = coverageOf(metrics, report);
+  const coverage = coverageOf(metrics, report, chain);
   const evaluated = counts.critical + counts.caution + counts.clear;
 
   let band: RiskBand;

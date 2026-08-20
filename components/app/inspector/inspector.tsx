@@ -23,6 +23,7 @@ import { useToast } from "@/components/ui/toast";
 import { ApiError } from "@/lib/api";
 import { assessRisk } from "@/lib/inspector/risk";
 import { EVM_ADDRESS, useAudit, useInspectedTarget, useRecents } from "@/lib/inspector/use-audit";
+import { ContractPanel } from "./contract-panel";
 import { FlagsPanel } from "./flags-panel";
 import { InspectorSkeleton } from "./skeleton";
 import { MetricsGrid } from "./metrics-grid";
@@ -91,6 +92,7 @@ export function Inspector() {
 
   const metrics = data?.metrics;
   const report = data?.report;
+  const chain = data?.onchain;
 
   // Record the address the backend resolved, not the raw input — a plain-English
   // query has no address until the report comes back.
@@ -113,8 +115,8 @@ export function Inspector() {
   }, [heading]);
 
   const assessment = React.useMemo(
-    () => (metrics ? assessRisk(metrics, report) : null),
-    [metrics, report]
+    () => (metrics ? assessRisk(metrics, report, chain) : null),
+    [metrics, report, chain]
   );
 
   return (
@@ -154,7 +156,13 @@ export function Inspector() {
               <FlagsPanel signals={assessment.signals} />
             </Reveal>
 
+            {/* Contract findings sit above the market grid: they condition how
+                much the market numbers are worth. */}
             <Reveal index={1}>
+              <ContractPanel chain={chain} />
+            </Reveal>
+
+            <Reveal index={2}>
               <MetricsGrid metrics={metrics} report={report} />
             </Reveal>
 

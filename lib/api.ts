@@ -309,10 +309,83 @@ export interface VerificationReport {
   disclaimer: string;
 }
 
+/* ------------------------------------------------------------- on-chain */
+
+/**
+ * Direct chain reads, mirroring `backend/src/services/onchain.ts`.
+ *
+ * These answer what an indexer structurally cannot: how much supply is actually
+ * free to trade rather than parked in the pool, whether the contract is an
+ * upgradeable proxy, and whether a transfer even succeeds. Every field is
+ * optional — a read that could not be established is absent, never defaulted.
+ */
+export interface FloatBreakdown {
+  totalSupply: string;
+  /** Absent when the pool's token balance could not be established. */
+  pooled?: string;
+  /**
+   * Uniswap v4 keeps every pool's balance in a single PoolManager rather than in
+   * a per-pair contract, so a v4 pool id reads back as holding nothing. When that
+   * happens the split is reported as unknown rather than as a reassuring
+   * "0% pooled, 100% free float".
+   */
+  pooledUnknown: boolean;
+  burned: string;
+  deployer?: string;
+  float?: string;
+  pooledPct?: number;
+  burnedPct: number;
+  floatPct?: number;
+  deployerPctOfFloat?: number;
+  /** Deployer holdings against total supply — computable even when pooled is not. */
+  deployerPctOfSupply?: number;
+}
+
+export interface ProxyReading {
+  isProxy: boolean;
+  standard?: "eip1967" | "eip1822";
+  implementation?: string;
+  admin?: string;
+}
+
+export type OwnerState =
+  /** The owner is explicitly the zero address. */
+  | { kind: "renounced" }
+  | { kind: "owned"; owner: string }
+  /** No owner-style function answered - not the same as renounced. */
+  | { kind: "no_owner_function" };
+
+export interface BytecodeReading {
+  sizeBytes: number;
+  levers: string[];
+  hasMint: boolean;
+  hasPause: boolean;
+  hasBlacklist: boolean;
+}
+
+export interface SellSimulation {
+  transferOk: boolean;
+  sellOk?: boolean;
+  taxPct?: number;
+  balanceSlot?: string;
+  note?: string;
+}
+
+export interface OnchainReading {
+  float?: FloatBreakdown;
+  proxy?: ProxyReading;
+  owner?: OwnerState;
+  bytecode?: BytecodeReading;
+  sell?: SellSimulation;
+  blockNumber?: string;
+}
+
 export interface AuditResult {
   success: boolean;
   chain: string;
   metrics: TokenMetrics;
+  /** Direct chain reads. Absent when the RPC could not be reached. */
+  onchain?: OnchainReading;
   /**
    * Present once the backend ships the additive `report` key. The inspector
    * degrades to metrics-only rendering when it is absent, so the frontend can

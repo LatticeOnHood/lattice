@@ -168,14 +168,11 @@ describe("toAcpDeliverable — matches the registered offering schema", () => {
     expect(JSON.parse(wire.token)).toEqual(report.token);
     expect(JSON.parse(wire.sources)).toEqual(report.sources);
 
+    // Compare against the report itself rather than a hardcoded snapshot, so
+    // this keeps testing round-trip fidelity as individual checks get shipped.
     const checks = JSON.parse(wire.checks);
     expect(Object.keys(checks)).toEqual(Object.keys(report.checks));
-    expect(checks.honeypot).toEqual({
-      available: false,
-      reason: "not_implemented",
-      plannedPhase: "01",
-      note: "Simulated buy-then-sell test is roadmap phase 01.",
-    });
+    expect(checks).toEqual(report.checks);
   });
 
   it("survives a null token without emitting the string \"undefined\"", () => {

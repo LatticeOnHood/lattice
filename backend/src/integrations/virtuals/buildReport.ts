@@ -42,9 +42,66 @@ function known(value: number | null | undefined): number | undefined {
  * The `source` argument is threaded in rather than inferred, so the provenance
  * on each field is the indexer that actually answered.
  */
+/**
+ * The subset of the on-chain reading the report can express through its existing
+ * checks. Passed in rather than fetched here so the builder stays pure.
+ */
+export interface OnchainFacts {
+  owner?: { kind: "renounced" | "owned" | "no_owner_function" };
+  bytecode?: { hasMint: boolean };
+  sell?: { transferOk: boolean; sellOk?: boolean; balanceSlot?: string };
+}
+
+/** Chain reads are their own provenance — they are not an indexer's opinion. */
+const CHAIN_SOURCE: DataSource = "codex.io";
+
+function onchainOwnership(facts?: OnchainFacts): Check<boolean> {
+  const kind = facts?.owner?.kind;
+  if (kind === "renounced" || kind === "owned") {
+    return ok(kind === "renounced", CHAIN_SOURCE, new Date().toISOString());
+  }
+  if (kind === "no_owner_function") {
+    return {
+      available: false,
+      reason: "no_data_from_source",
+      note: "No owner-style function responded. That is not the same as renounced — a role-based contract can still have a live admin.",
+    };
+  }
+  return NO_DATA;
+}
+
+function onchainMint(facts?: OnchainFacts): Check<boolean> {
+  if (facts?.bytecode === undefined) return NO_DATA;
+  // Deliberately reports absence of a mint selector, not "cannot be minted":
+  // a selector found in bytecode may still be unreachable, and one that is
+  // absent may exist behind a proxy or an unusual dispatch.
+  return {
+    available: false,
+    reason: "no_data_from_source",
+    note: facts.bytecode.hasMint
+      ? "A mint function is present in the deployed bytecode. Whether it is callable was not determined."
+      : "No mint selector found in the deployed bytecode. That is not proof minting is impossible.",
+  };
+}
+
+function onchainHoneypot(facts?: OnchainFacts): Check<boolean> {
+  const sell = facts?.sell;
+  if (!sell || sell.balanceSlot === undefined) {
+    return {
+      available: false,
+      reason: "no_data_from_source",
+      note: "The token's balance storage layout could not be resolved, so no transfer simulation was run.",
+    };
+  }
+  // `true` means honeypot-shaped. A simulated transfer that reverts while an
+  // ordinary one succeeds is the classic sell-blocked pattern.
+  const blocked = !sell.transferOk || sell.sellOk === false;
+  return ok(blocked, CHAIN_SOURCE, new Date().toISOString());
+}
+
 export function buildVerificationReport(
   metrics: DexScreenerTokenMetrics,
-  options: { source?: DataSource; generatedAt?: string } = {}
+  options: { source?: DataSource; generatedAt?: string; onchain?: OnchainFacts } = {}
 ): VerificationReport {
   const source: DataSource = options.source ?? metrics.dataSource ?? "dexscreener";
   const at = options.generatedAt ?? new Date().toISOString();
@@ -94,10 +151,21 @@ export function buildVerificationReport(
       devTxns,
 
       lpLocked: notImplemented("01", "LP lock and burn detection is roadmap phase 01."),
-      honeypot: notImplemented("01", "Simulated buy-then-sell test is roadmap phase 01."),
-      ownershipRenounced: notImplemented("01", "Contract signal reads are roadmap phase 01."),
-      mintDisabled: notImplemented("01", "Contract signal reads are roadmap phase 01."),
-      sourceVerified: notImplemented("01", "Explorer source verification is roadmap phase 01."),
+
+      /**
+       * A reverting `owner()` is not a renouncement — it means no owner-style
+       * function answered, which a role-based contract with a live admin would
+       * also produce. Only an explicit zero address counts as renounced.
+       */
+      honeypot: onchainHoneypot(options.onchain),
+      ownershipRenounced: onchainOwnership(options.onchain),
+      mintDisabled: onchainMint(options.onchain),
+
+      sourceVerified: {
+        available: false,
+        reason: "no_data_from_source",
+        note: "Robinhood Chain's explorer exposes no JSON API, so verification status cannot be read.",
+      },
 
       promisesKept: {
         available: false,

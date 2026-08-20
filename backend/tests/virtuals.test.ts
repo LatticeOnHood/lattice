@@ -69,17 +69,89 @@ describe("buildVerificationReport — market checks", () => {
 });
 
 describe("buildVerificationReport — the no-handwaving rule", () => {
-  it("never returns a passing value for a check Lattice has not shipped", () => {
+  it("never returns a passing value for a check it could not establish", () => {
+    // No on-chain facts supplied: nothing here may resolve to a value at all.
     const report = buildVerificationReport(metrics(), { generatedAt: AT });
 
     for (const id of ["lpLocked", "honeypot", "ownershipRenounced", "mintDisabled", "sourceVerified"] as const) {
-      const check = report.checks[id];
-      expect(check.available).toBe(false);
-      if (!isAvailable(check)) {
-        expect(check.reason).toBe("not_implemented");
-        expect(check.plannedPhase).toBe("01");
-      }
+      expect(report.checks[id].available).toBe(false);
     }
+  });
+
+  it("still marks LP lock as unshipped rather than unknown", () => {
+    const check = buildVerificationReport(metrics(), { generatedAt: AT }).checks.lpLocked;
+
+    expect(check.available).toBe(false);
+    if (!isAvailable(check)) {
+      expect(check.reason).toBe("not_implemented");
+      expect(check.plannedPhase).toBe("01");
+    }
+  });
+
+  it("treats a missing owner function as unknown, never as renounced", () => {
+    const report = buildVerificationReport(metrics(), {
+      generatedAt: AT,
+      onchain: { owner: { kind: "no_owner_function" } },
+    });
+    const check = report.checks.ownershipRenounced;
+
+    // The trap this guards: a reverting owner() reads as "no owner", which is
+    // not the same as ownership having been renounced.
+    expect(check.available).toBe(false);
+    if (!isAvailable(check)) expect(check.reason).toBe("no_data_from_source");
+  });
+
+  it("reports ownership renounced only when the owner is explicitly the zero address", () => {
+    const renounced = buildVerificationReport(metrics(), {
+      generatedAt: AT,
+      onchain: { owner: { kind: "renounced" } },
+    }).checks.ownershipRenounced;
+    expect(renounced.available).toBe(true);
+    if (isAvailable(renounced)) expect(renounced.value).toBe(true);
+
+    const owned = buildVerificationReport(metrics(), {
+      generatedAt: AT,
+      onchain: { owner: { kind: "owned" } },
+    }).checks.ownershipRenounced;
+    expect(owned.available).toBe(true);
+    if (isAvailable(owned)) expect(owned.value).toBe(false);
+  });
+
+  it("does not claim minting is impossible from a bytecode scan alone", () => {
+    const check = buildVerificationReport(metrics(), {
+      generatedAt: AT,
+      onchain: { bytecode: { hasMint: false } },
+    }).checks.mintDisabled;
+
+    // Absence of a selector is evidence, not proof — it must stay unavailable.
+    expect(check.available).toBe(false);
+    if (!isAvailable(check)) expect(check.note).toContain("not proof");
+  });
+
+  it("flags a blocked transfer as honeypot-shaped once the layout resolved", () => {
+    const blocked = buildVerificationReport(metrics(), {
+      generatedAt: AT,
+      onchain: { sell: { transferOk: false, balanceSlot: "0x0" } },
+    }).checks.honeypot;
+    expect(blocked.available).toBe(true);
+    if (isAvailable(blocked)) expect(blocked.value).toBe(true);
+
+    const clean = buildVerificationReport(metrics(), {
+      generatedAt: AT,
+      onchain: { sell: { transferOk: true, sellOk: true, balanceSlot: "0x0" } },
+    }).checks.honeypot;
+    expect(clean.available).toBe(true);
+    if (isAvailable(clean)) expect(clean.value).toBe(false);
+  });
+
+  it("leaves honeypot unavailable when the balance slot could not be found", () => {
+    const check = buildVerificationReport(metrics(), {
+      generatedAt: AT,
+      onchain: { sell: { transferOk: false } },
+    }).checks.honeypot;
+
+    // A failed simulation must not read as a failed sell test.
+    expect(check.available).toBe(false);
   });
 
   it("reports promisesKept as having no declared baseline, not as a failure", () => {

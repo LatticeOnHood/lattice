@@ -4,6 +4,7 @@ import { isValidEvmAddress } from "../services/dexscreener";
 import { parseIntentWithGroq, RequestedMetric } from "../services/groq";
 import { renderTelegramAuditCard, renderTwitterAuditReply, renderSpecificMetricsCard } from "../templates/cardRenderer";
 import { buildVerificationReport } from "../integrations/virtuals/buildReport";
+import { readOnchain } from "../services/onchain";
 import { pool } from "../db/index";
 
 const router = Router();
@@ -67,14 +68,33 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
 
     const isSpecific = action === "SPECIFIC_METRICS" && requestedMetrics.length > 0 && !requestedMetrics.includes("FULL_AUDIT");
 
+    /**
+     * Direct chain reads, run alongside the indexer data.
+     *
+     * These answer what an indexer structurally cannot: how much of supply is
+     * actually free to trade rather than sitting in the pool, whether the token
+     * is an upgradeable proxy, and whether a transfer even succeeds. Failures
+     * degrade to an absent block rather than failing the audit — a report built
+     * on market data alone is still worth returning.
+     */
+    const onchain = await readOnchain(metrics.address, {
+      pair: metrics.pairAddress,
+      creator: metrics.creatorAddress,
+      liquidityUsd: metrics.liquidityUsd,
+    }).catch((err) => {
+      console.warn("[onchain] read failed:", err?.message);
+      return undefined;
+    });
+
     res.status(200).json({
       success: true,
       chain: "robinhood",
       metrics,
+      onchain,
       // Additive: the same versioned report `/api/v1/verify/:address` serves.
       // Existing consumers read `metrics` and `renderedCards` and are unaffected;
       // the dashboard uses this to distinguish "no data" from "check not shipped".
-      report: buildVerificationReport(metrics),
+      report: buildVerificationReport(metrics, { onchain }),
       renderedCards: {
         telegramHtml: isSpecific
           ? renderSpecificMetricsCard(metrics, requestedMetrics, "TELEGRAM")
