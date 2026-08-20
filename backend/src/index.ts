@@ -33,4 +33,9 @@ async function start() {
   );
 }
 
-start();
+// Only call app.listen in standalone runtime (not inside serverless handler imports)
+if (process.env.VERCEL !== "1") {
+  start();
+}
+
+export default app;
