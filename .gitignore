@@ -27,3 +27,5 @@ lattice (*).md
 # TypeScript incremental build cache — machine-specific, must not be committed.
 tsconfig.tsbuildinfo
 *.tsbuildinfo
+
+
